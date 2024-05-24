@@ -1,13 +1,13 @@
 const mongoose = require('mongoose');
 
-const userSchema = mongoose.Schema({
+const userSchema = new mongoose.Schema({
   userId: {
     type: String,
     required: true,
     unique: true,
   },
   firstName: {
-    type: String, 
+    type: String,
     required: true,
   },
   lastName: {
@@ -19,13 +19,13 @@ const userSchema = mongoose.Schema({
     required: true,
   },
   username: {
-    type: String, 
+    type: String,
     required: true,
-    unique: true,
   },
   anilistUsername: {
     type: String,
-    unique: true,
+    default: null,
+    sparse: true,  // Allows null values
   },
 });
 
