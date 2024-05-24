@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-let loggingEnabled = false;
+let loggingEnabled = true;
 
 async function logMessage(msg, bot) {
   const chatId = msg.chat.id || '';
