@@ -26,7 +26,6 @@ module.exports = function (bot) {
 *Utilities*
 • */request* - Request anime/manga or give suggestions
 • */list* - Get the list of Archive
-• */madchat* - Chat with MADBot, your anime AI assistant
 • */lastairing* - Recent airing anime episodes
 • */top* - Retrieve top anime or manga titles
 • */browse* - Get info about popular, trending or upcoming animes
