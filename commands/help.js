@@ -27,6 +27,8 @@ module.exports = function (bot) {
 • */request* - Request anime/manga or give suggestions
 • */list* - Get the list of Archive
 • */lastairing* - Recent airing anime episodes
+• */top* - Retrieve top anime or manga titles
+• */browse* - Get info about popular, trending or upcoming animes
 • */random* - Get a random anime and start watching it`;
         bot.sendMessage(message.chat.id, helpResponse, {parse_mode: 'Markdown'});
       });
@@ -35,6 +37,4 @@ module.exports = function (bot) {
 };
 
 
-// • */top* - Retrieve top anime or manga titles
-// • */browse* - Get info about popular, trending or upcoming animes
 
