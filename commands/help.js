@@ -12,7 +12,7 @@ module.exports = function (bot) {
 
 *Getting Started*
 • */start* - Get started with Bot
-• **/help** - Show this help message
+• */help* - Show this help message
 
 *Channels*
 • */anime* - Get anime channel

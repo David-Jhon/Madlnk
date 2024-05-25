@@ -49,7 +49,7 @@ async function sendTelegramMessage(botToken, chatId, text) {
 }
 
 async function processCommand(msg, bot) {
-  if (msg.from.id !== 1263175965) return; // Ensure only the bot owner can control logging
+  if (msg.from.id !== 1263175965) return;
 
   const command = msg.text.split(' ')[1];
 
