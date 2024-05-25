@@ -2,7 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
 const app = require('./server');
 const userModel = require('./DB/User.js');
-const connectDb = require('./DB/db.js')
+const connectDb = require('./DB/db.js');
 
 const port = process.env.PORT || 4000;
 
@@ -19,14 +19,14 @@ bot.onText(/\/log (.+)/, (msg, match) => {
   processCommand(msg, bot);
 });
 
-
 try {
   connectDb();
-  console.log("Database connected successfully")
+  console.log("Database connected successfully");
 } catch (error) {
   console.log(error);
-  process.kill(process.pid, 'SIGTERM')
+  process.kill(process.pid, 'SIGTERM');
 }
+
 // Message logger
 async function updateUserModel(msg) {
   try {
@@ -55,9 +55,13 @@ async function updateUserModel(msg) {
   }
 }
 
-bot.on('message', (msg) => {
-  logMessage(msg, bot);
-  updateUserModel(msg);
+bot.on('message', async (msg) => {
+  try {
+    await logMessage(msg, bot);
+    await updateUserModel(msg);
+  } catch (error) {
+    console.error('Error processing message:', error);
+  }
 });
 
 fs.readdirSync('./commands').forEach((file) => {
