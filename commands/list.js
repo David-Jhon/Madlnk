@@ -1,6 +1,6 @@
 const axios = require("axios");
 
-module.exports = function (bot) {
+module.exports = function (bot, callbackListeners) {
     bot.onText(/\/list/, async (msg) => {
         const chatId = msg.chat.id;
         const keyboard = [
@@ -14,26 +14,28 @@ module.exports = function (bot) {
         bot.sendMessage(chatId, "Please select a category to see the list of available titles\n\n\n[NOTE: Each category is updated regularly with the latest titles]", { reply_markup: replyMarkup });
     });
 
-    bot.on("callback_query", async (callbackQuery) => {
-        const [action, pageString, initial] = callbackQuery.data.split('_');
+    // Register the callback query handler for list operations
+    callbackListeners.set('list_', async (callbackQuery) => {
+        const data = callbackQuery.data;
+        const [_, action, pageString, initial] = data.split('_');
         const currentPage = parseInt(pageString, 10);
         const chatId = callbackQuery.message.chat.id;
         let url, category;
 
         switch (action) {
-            case "list_manga":
+            case "manga":
                 url = "https://api.telegra.ph/getPage/List-of-Manga-Part-1-07-18?return_content=true";
                 category = "Manga";
                 break;
-            case "list_manhwa":
+            case "manhwa":
                 url = "https://api.telegra.ph/getPage/List-of-Manhwa-07-18?return_content=true";
                 category = "Manhwa";
                 break;
-            case "list_manhua":
+            case "manhua":
                 url = "https://api.telegra.ph/getPage/List-of-Manhua-07-25?return_content=true";
                 category = "Manhua";
                 break;
-            case "list_anime":
+            case "anime":
                 url = "https://api.telegra.ph/getPage/List-of-Anime-Part-1-10-23?return_content=true";
                 category = "Anime";
                 break;
@@ -41,10 +43,15 @@ module.exports = function (bot) {
                 return;
         }
 
-        const data = await fetchData(url);
-        if (data) {
+        try {
+            const data = await fetchData(url);
+            if (!data || data.length === 0) {
+                await bot.sendMessage(chatId, "No data found for the selected category.");
+                return;
+            }
+
             const itemsPerPage = 20;
-            const list = await fetchListData(data);
+            const list = await fetchAnimeData(data);
             const paginatedList = list.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
             const numPages = Math.ceil(list.length / itemsPerPage);
 
@@ -52,21 +59,23 @@ module.exports = function (bot) {
 
             if (numPages > 1) {
                 keyboard.push([
-                    ...(currentPage > 0 ? [{ text: "⬅️ Previous", callback_data: `${action}_${currentPage - 1}` }] : []),
-                    ...(currentPage < numPages - 1 ? [{ text: "Next ➡️", callback_data: `${action}_${currentPage + 1}` }] : [])
+                    ...(currentPage > 0 ? [{ text: "⬅️ Previous", callback_data: `list_${action}_${currentPage - 1}` }] : []),
+                    ...(currentPage < numPages - 1 ? [{ text: "Next ➡️", callback_data: `list_${action}_${currentPage + 1}` }] : [])
                 ]);
             }
 
             const replyMarkup = { inline_keyboard: keyboard };
 
+            const messageText = `❏ *Here is the list of ${category}*\n\n${paginatedList.join("\n")}`;
+
             if (initial === 'init') {
-                await bot.sendMessage(chatId, `❏ *Here is the list of ${category}*\n\n${paginatedList.join("\n")}`, {
+                await bot.sendMessage(chatId, messageText, {
                     parse_mode: 'Markdown',
                     disable_web_page_preview: true,
                     reply_markup: replyMarkup
                 });
             } else {
-                await bot.editMessageText(`❏ *Here is the list of ${category}*\n\n${paginatedList.join("\n")}`, {
+                await bot.editMessageText(messageText, {
                     chat_id: chatId,
                     message_id: callbackQuery.message.message_id,
                     parse_mode: 'Markdown',
@@ -74,7 +83,8 @@ module.exports = function (bot) {
                     reply_markup: replyMarkup
                 });
             }
-        } else {
+        } catch (error) {
+            console.error("Error processing callback query:", error);
             await bot.sendMessage(chatId, "Failed to fetch data.");
         }
     });
@@ -82,7 +92,6 @@ module.exports = function (bot) {
 
 async function fetchData(url) {
     try {
-        if (!url) return null;
         const response = await axios.get(url);
         if (response.status === 200) {
             return response.data;
@@ -91,12 +100,12 @@ async function fetchData(url) {
             return null;
         }
     } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching data from API:", error);
         return null;
     }
 }
 
-async function fetchListData(data) {
+async function fetchAnimeData(data) {
     const content = data['result']['content'];
     const list = [];
     let itemNumber = 1;
