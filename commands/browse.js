@@ -52,15 +52,15 @@ function generateKeyboard(currentSelection) {
   return {
     inline_keyboard: [
       [
-        { text: currentSelection === 'trending' ? '• Trending •' : 'Trending', callback_data: 'trending' },
-        { text: currentSelection === 'popular' ? '• Popular •' : 'Popular', callback_data: 'popular' },
-        { text: currentSelection === 'upcoming' ? '• Upcoming •' : 'Upcoming', callback_data: 'upcoming' }
+        { text: currentSelection === 'browse_trending' ? '• Trending •' : 'Trending', callback_data: 'browse_trending' },
+        { text: currentSelection === 'browse_popular' ? '• Popular •' : 'Popular', callback_data: 'browse_popular' },
+        { text: currentSelection === 'browse_upcoming' ? '• Upcoming •' : 'Upcoming', callback_data: 'browse_upcoming' }
       ]
     ]
   };
 }
 
-module.exports = function (bot) {
+module.exports = function (bot, callbackListeners) {
   bot.onText(/\/browse/, async (msg) => {
     const chatId = msg.chat.id;
 
@@ -74,16 +74,18 @@ module.exports = function (bot) {
       trending.slice(0, 20).map(anime => `⚬ \`${anime.title.english || anime.title.romaji}\``).join('\n');
 
     const opts = {
-      reply_markup: generateKeyboard('trending'),
+      reply_markup: generateKeyboard('browse_trending'),
       parse_mode: 'Markdown'
     };
 
     bot.sendMessage(chatId, responseText, opts)
   });
 
-  bot.on('callback_query', async (callbackQuery) => {
+  callbackListeners.set('browse_', async (callbackQuery) => {
     const message = callbackQuery.message;
     const data = callbackQuery.data;
+
+    if (!data.startsWith('browse_')) return;  // Ensure this callback query is for browse
 
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
@@ -95,13 +97,13 @@ module.exports = function (bot) {
     let animeList = [];
     let responseText = '';
 
-    if (data === 'trending') {
+    if (data === 'browse_trending') {
       animeList = await fetchAnimeList('ANIME', ['TRENDING_DESC'], currentYear, currentSeason);
       responseText = `Trending Animes in ${currentSeason} ${currentYear}:\n\n`;
-    } else if (data === 'popular') {
+    } else if (data === 'browse_popular') {
       animeList = await fetchAnimeList('ANIME', ['POPULARITY_DESC'], currentYear, currentSeason);
       responseText = `Popular Animes in ${currentSeason} ${currentYear}:\n\n`;
-    } else if (data === 'upcoming') {
+    } else if (data === 'browse_upcoming') {
       animeList = await fetchAnimeList('ANIME', ['POPULARITY_DESC'], nextYear, nextSeason);
       responseText = `Upcoming Animes in ${nextSeason} ${nextYear}:\n\n`;
     }
