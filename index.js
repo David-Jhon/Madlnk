@@ -4,7 +4,6 @@ const app = require('./server');
 const userModel = require('./DB/User.js');
 const connectDb = require('./DB/db.js');
 
-
 const port = process.env.PORT || 4000;
 
 app.listen(port, () => {
@@ -65,7 +64,20 @@ bot.on('message', async (msg) => {
   }
 });
 
+// Create a listener manager to handle multiple callback_query listeners
+const callbackListeners = new Map();
+
+bot.on('callback_query', (callbackQuery) => {
+  const data = callbackQuery.data;
+  for (const [prefix, handler] of callbackListeners) {
+    if (data.startsWith(prefix)) {
+      handler(callbackQuery);
+      break;
+    }
+  }
+});
+
 fs.readdirSync('./commands').forEach((file) => {
   const command = require(`./commands/${file}`);
-  command(bot);
+  command(bot, callbackListeners);
 });
