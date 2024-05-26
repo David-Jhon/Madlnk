@@ -29,12 +29,11 @@ module.exports = function (bot) {
 • */lastairing* - Recent airing anime episodes
 • */top* - Retrieve top anime or manga titles
 • */browse* - Get info about popular, trending or upcoming animes
-• */random* - Get a random anime and start watching it`;
+• */random* - Get a random anime and start watching it
+• */fillers* - Search for anime fillers
+`;
         bot.sendMessage(message.chat.id, helpResponse, {parse_mode: 'Markdown'});
       });
     }
   });
 };
-
-
-
