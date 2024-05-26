@@ -4,10 +4,10 @@ module.exports = function (bot) {
     bot.onText(/\/list/, async (msg) => {
         const chatId = msg.chat.id;
         const keyboard = [
-            [{ text: "Manga", callback_data: "manga_0_init" }],
-            [{ text: "Manhwa", callback_data: "manhwa_0_init" }],
-            [{ text: "Manhua", callback_data: "manhua_0_init" }],
-            [{ text: "Anime", callback_data: "anime_0_init" }]
+            [{ text: "Manga", callback_data: "list_manga_0_init" }],
+            [{ text: "Manhwa", callback_data: "list_manhwa_0_init" }],
+            [{ text: "Manhua", callback_data: "list_manhua_0_init" }],
+            [{ text: "Anime", callback_data: "list_anime_0_init" }]
         ];
 
         const replyMarkup = { inline_keyboard: keyboard };
@@ -21,19 +21,19 @@ module.exports = function (bot) {
         let url, category;
 
         switch (action) {
-            case "manga":
+            case "list_manga":
                 url = "https://api.telegra.ph/getPage/List-of-Manga-Part-1-07-18?return_content=true";
                 category = "Manga";
                 break;
-            case "manhwa":
+            case "list_manhwa":
                 url = "https://api.telegra.ph/getPage/List-of-Manhwa-07-18?return_content=true";
                 category = "Manhwa";
                 break;
-            case "manhua":
+            case "list_manhua":
                 url = "https://api.telegra.ph/getPage/List-of-Manhua-07-25?return_content=true";
                 category = "Manhua";
                 break;
-            case "anime":
+            case "list_anime":
                 url = "https://api.telegra.ph/getPage/List-of-Anime-Part-1-10-23?return_content=true";
                 category = "Anime";
                 break;
@@ -44,7 +44,7 @@ module.exports = function (bot) {
         const data = await fetchData(url);
         if (data) {
             const itemsPerPage = 20;
-            const list = await fetchAnimeData(data);
+            const list = await fetchListData(data);
             const paginatedList = list.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
             const numPages = Math.ceil(list.length / itemsPerPage);
 
@@ -91,12 +91,12 @@ async function fetchData(url) {
             return null;
         }
     } catch (error) {
-        console.error("Error at list");
+        console.error("Error fetching data:", error);
         return null;
     }
 }
 
-async function fetchAnimeData(data) {
+async function fetchListData(data) {
     const content = data['result']['content'];
     const list = [];
     let itemNumber = 1;
