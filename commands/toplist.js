@@ -24,7 +24,7 @@ module.exports = function (bot) {
       "📚 /top manga - Explore the top manga titles\n\n" +
       "You can also specify a genre:\n\n" +
       "🔍 /top anime action - Discover top anime titles in the action genre\n" +
-"🔍 /top manga comedy - Explore top manga titles in the comedy genre";
+      "🔍 /top manga comedy - Explore top manga titles in the comedy genre";
     if (msg.text === '/top') {
       bot.sendMessage(msg.chat.id, message);
     }
@@ -45,10 +45,10 @@ module.exports = function (bot) {
 
       const inlineKeyboard = [];
       if (hasPreviousPage) {
-        inlineKeyboard.push([{ text: 'Previous', callback_data: `top${type.toLowerCase()}_page_${page - 1}` }]);
+        inlineKeyboard.push([{ text: 'Previous', callback_data: `top_${type.toLowerCase()}_page_${page - 1}` }]);
       }
       if (hasNextPage) {
-        inlineKeyboard.push([{ text: 'Next', callback_data: `top${type.toLowerCase()}_page_${page + 1}` }]);
+        inlineKeyboard.push([{ text: 'Next', callback_data: `top_${type.toLowerCase()}_page_${page + 1}` }]);
       }
 
       const message = await bot.sendMessage(chatId, `❏ *Top ${type.toUpperCase()}${genre ? ' for genre ' + genre.toUpperCase() + ':' : ':'}*\n\n${titles}\n\nTotal available ${type.toLowerCase()}: ${totalMedia}`, {
@@ -65,8 +65,8 @@ module.exports = function (bot) {
 
       bot.on('callback_query', (callbackQuery) => {
         const data = callbackQuery.data;
-        if (data.startsWith(`top${type.toLowerCase()}_page_`)) {
-          const newPage = parseInt(data.split('_')[2]);
+        if (data.startsWith(`top_${type.toLowerCase()}_page_`)) {
+          const newPage = parseInt(data.split('_')[3]);
           editTopMediaPage(chatId, messageId, newPage, type, genre);
         }
       });
@@ -107,10 +107,10 @@ module.exports = function (bot) {
 
       const inlineKeyboard = [];
       if (hasPreviousPage) {
-        inlineKeyboard.push([{ text: 'Previous', callback_data: `top${type.toLowerCase()}_page_${page - 1}` }]);
+        inlineKeyboard.push([{ text: 'Previous', callback_data: `top_${type.toLowerCase()}_page_${page - 1}` }]);
       }
       if (hasNextPage) {
-        inlineKeyboard.push([{ text: 'Next', callback_data: `top${type.toLowerCase()}_page_${page + 1}` }]);
+        inlineKeyboard.push([{ text: 'Next', callback_data: `top_${type.toLowerCase()}_page_${page + 1}` }]);
       }
 
       await bot.editMessageText(`❏ *Top ${type.toUpperCase()}${genre ? ' for genre ' + genre.toUpperCase() + ':' : ':'}*\n\n${titles}\n\nTotal available ${type.toLowerCase()}: ${totalMedia}`, {
