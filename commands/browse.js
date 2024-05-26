@@ -2,7 +2,7 @@ const axios = require('axios');
 
 const ANILIST_URL = 'https://graphql.anilist.co/';
 
-async function getAnimeList(type, sort, year, season, page = 1, perPage = 20) {
+async function fetchAnimeList(type, sort, year, season, page = 1, perPage = 20) {
   const query = `
     query ($type: MediaType, $sort: [MediaSort], $year: Int, $season: MediaSeason, $page: Int, $perPage: Int) {
       Page(page: $page, perPage: $perPage) {
@@ -41,15 +41,14 @@ async function getAnimeList(type, sort, year, season, page = 1, perPage = 20) {
 
   try {
     const response = await axios.post(ANILIST_URL, { query, variables });
-    const data = response.data.data.Page.media;
-    return data;
+    return response.data.data.Page.media;
   } catch (error) {
     console.error('Error fetching anime list:', error);
     return [];
   }
 }
 
-function getKeyboard(currentSelection) {
+function generateKeyboard(currentSelection) {
   return {
     inline_keyboard: [
       [
@@ -70,12 +69,12 @@ module.exports = function (bot) {
     const seasons = ['WINTER', 'SPRING', 'SUMMER', 'FALL'];
     const currentSeason = seasons[Math.floor((currentMonth - 1) / 3)];
 
-    const trending = await getAnimeList('ANIME', ['TRENDING_DESC'], currentYear, currentSeason);
+    const trending = await fetchAnimeList('ANIME', ['TRENDING_DESC'], currentYear, currentSeason);
     const responseText = `Trending Animes in ${currentSeason} ${currentYear}:\n\n` +
       trending.slice(0, 20).map(anime => `⚬ \`${anime.title.english || anime.title.romaji}\``).join('\n');
 
     const opts = {
-      reply_markup: getKeyboard('trending'),
+      reply_markup: generateKeyboard('trending'),
       parse_mode: 'Markdown'
     };
 
@@ -97,13 +96,13 @@ module.exports = function (bot) {
     let responseText = '';
 
     if (data === 'trending') {
-      animeList = await getAnimeList('ANIME', ['TRENDING_DESC'], currentYear, currentSeason);
+      animeList = await fetchAnimeList('ANIME', ['TRENDING_DESC'], currentYear, currentSeason);
       responseText = `Trending Animes in ${currentSeason} ${currentYear}:\n\n`;
     } else if (data === 'popular') {
-      animeList = await getAnimeList('ANIME', ['POPULARITY_DESC'], currentYear, currentSeason);
+      animeList = await fetchAnimeList('ANIME', ['POPULARITY_DESC'], currentYear, currentSeason);
       responseText = `Popular Animes in ${currentSeason} ${currentYear}:\n\n`;
     } else if (data === 'upcoming') {
-      animeList = await getAnimeList('ANIME', ['POPULARITY_DESC'], nextYear, nextSeason);
+      animeList = await fetchAnimeList('ANIME', ['POPULARITY_DESC'], nextYear, nextSeason);
       responseText = `Upcoming Animes in ${nextSeason} ${nextYear}:\n\n`;
     }
 
@@ -112,7 +111,7 @@ module.exports = function (bot) {
     bot.editMessageText(responseText, {
       chat_id: message.chat.id,
       message_id: message.message_id,
-      reply_markup: getKeyboard(data),
+      reply_markup: generateKeyboard(data),
       parse_mode: 'Markdown',
     });
   });
