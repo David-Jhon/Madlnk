@@ -5,11 +5,6 @@ const userModel = require('./DB/User.js');
 const connectDb = require('./DB/db.js');
 
 const port = process.env.PORT || 4000;
-
-app.listen(port, () => {
-  console.log(`Bot app with webpage listening on port http://localhost:${port}`);
-});
-
 const mySecret = process.env['BOT_TOKEN'];
 const bot = new TelegramBot(mySecret, { polling: true });
 
@@ -19,38 +14,43 @@ bot.onText(/\/log (.+)/, (msg, match) => {
   processCommand(msg, bot);
 });
 
-try {
-  connectDb();
-  console.log("Database connected successfully");
-} catch (error) {
-  console.log(error);
-  process.kill(process.pid, 'SIGTERM');
+async function main() {
+  try {
+    await connectDb();
+    console.log("Database connected successfully");
+  } catch (error) {
+    console.error("Database connection failed", error);
+    process.exit(1);
+  }
+
+  app.listen(port, () => {
+    console.log(`Bot app with webpage listening on port http://localhost:${port}`);
+  });
 }
 
-// Message logger
+main();
+
 async function updateUserModel(msg) {
   try {
     const existingUser = await userModel.findOne({ userId: msg.from.id });
 
     if (!existingUser) {
-      await userModel.findOneAndUpdate({
-        userId: msg.from.id
-      }, {
-        $setOnInsert: {
-          firstName: msg.from.first_name,
-          lastName: msg.from.last_name,
-          isBot: msg.from.is_bot,
-          username: msg.from.username,
+      await userModel.findOneAndUpdate(
+        { userId: msg.from.id },
+        {
+          $setOnInsert: {
+            firstName: msg.from.first_name,
+            lastName: msg.from.last_name,
+            isBot: msg.from.is_bot,
+            username: msg.from.username,
+          },
         },
-      }, {
-        upsert: true,
-        new: true
-      });
-
+        { upsert: true, new: true }
+      );
       console.log("New User has been added to the database");
     }
   } catch (error) {
-    console.log(error);
+    console.error("DB: Error updating user info", error);
     bot.sendMessage(msg.chat.id, "DB: Error updating user info");
   }
 }
@@ -64,9 +64,9 @@ bot.on('message', async (msg) => {
   }
 });
 
-// Create a listener manager to handle multiple callback_query listeners
 const callbackListeners = new Map();
 
+// Create a listener manager to handle multiple callback_query listeners
 bot.on('callback_query', (callbackQuery) => {
   const data = callbackQuery.data;
   for (const [prefix, handler] of callbackListeners) {
