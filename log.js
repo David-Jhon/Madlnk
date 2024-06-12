@@ -8,6 +8,12 @@ let loggingEnabled = true;
 async function logMessage(msg) {
   const chatId = msg.chat.id || '';
   const senderName = msg.from.first_name + (msg.from.last_name ? ` ${msg.from.last_name}` : '');
+
+  if (chatId == adminGroupChatId) {
+    // Skip logging for messages from admin group chat
+    return;
+  }
+
   let logEntry = `🤖『 Bot Logs 』\n\n👤 | ${senderName}\n🪪 | @${msg.from.username}\nID  | ${msg.from.id}\n💬 | ${chatId}\n\nMessage:\n» `;
 
   if (msg.text) {
