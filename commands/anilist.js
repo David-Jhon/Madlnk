@@ -149,6 +149,7 @@ module.exports = (bot) => {
                 );
                 return;
             }
+            await bot.sendChatAction(chatId, 'typing');
 
             const userId = await getUserId(user.anilistUsername);
             const recentActivity = await getUserRecentActivity(userId);
@@ -196,6 +197,7 @@ module.exports = (bot) => {
         const username = match[1];
 
         try {
+            await bot.sendChatAction(chatId, 'typing');
             const userId = await getUserId(username);
             const recentActivity = await getUserRecentActivity(userId);
             const metaImageUrl = `https://img.anili.st/user/${userId}`;
@@ -232,4 +234,4 @@ module.exports = (bot) => {
             );
         }
     });
-};
+}; 
