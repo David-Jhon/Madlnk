@@ -5,7 +5,7 @@ const client = axios.create({
   headers: {
     'accept': '*/*',
     'accept-language': 'en-US,en;q=0.9',
-    'cookie': '',  // Add cookies
+    'cookie': '',  // Add coookies
     'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120"',
     'sec-ch-ua-mobile': '?1',
     'sec-ch-ua-platform': '"Android"',
