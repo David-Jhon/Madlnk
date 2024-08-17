@@ -10,7 +10,8 @@ const url = process.env.APP_URL || `https://your-host-name.com`;
 
 const bot = new TelegramBot(mySecret, {
   webHook: {
-    port: port
+    port: port,
+    host: '0.0.0.0'
   }
 });
 
@@ -31,8 +32,8 @@ async function main() {
     process.exit(1);
   }
 
-  app.listen(port, () => {
-    console.log(`Bot app with webpage listening on port http://localhost:${port}`);
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Bot app with webpage listening on port ${port}`);
   });
 }
 
