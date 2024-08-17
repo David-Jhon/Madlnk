@@ -31,7 +31,7 @@ module.exports = function (bot) {
 • */browse* - Get info about popular, trending or upcoming animes
 • */random* - Get a random anime and start watching it
 • */fillers* - Search for anime fillers
-`;
+• */upload* - Upload a photo, GIF, or video to Imgur`;
         bot.sendMessage(message.chat.id, helpResponse, {parse_mode: 'Markdown'});
       });
     }
