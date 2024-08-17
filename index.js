@@ -6,7 +6,15 @@ const connectDb = require('./DB/db.js');
 
 const port = process.env.PORT || 4000;
 const mySecret = process.env['BOT_TOKEN'];
-const bot = new TelegramBot(mySecret, { polling: true });
+const url = process.env.APP_URL || `https://your-host-name.com`;
+
+const bot = new TelegramBot(mySecret, {
+  webHook: {
+    port: port
+  }
+});
+
+bot.setWebHook(`${url}/bot${mySecret}`);
 
 const { logMessage, processCommand } = require('./log.js');
 
@@ -66,7 +74,6 @@ bot.on('message', async (msg) => {
 
 const callbackListeners = new Map();
 
-// Create a listener manager to handle multiple callback_query listeners
 bot.on('callback_query', (callbackQuery) => {
   const data = callbackQuery.data;
   for (const [prefix, handler] of callbackListeners) {
