@@ -1,6 +1,6 @@
 const axios = require('axios');
+const cheerio = require('cheerio');
 
-// Function to download the doujin info and images with necessary headers
 async function downloadDoujin(doujinId) {
     const url = `https://nhentai.net/api/gallery/${encodeURIComponent(doujinId)}`;
     try {
@@ -13,11 +13,10 @@ async function downloadDoujin(doujinId) {
         const media_id = doujin.media_id;
 
         const imageUrls = doujin.images.pages.map((page, index) => {
-            let ext = page.t === 'j' ? 'jpg' : 'png'; // Determine if it's jpg or png
+            let ext = page.t === 'j' ? 'jpg' : 'png'; 
             return `https://i7.nhentai.net/galleries/${encodeURIComponent(media_id)}/${index + 1}.${ext}`;
         });
 
-        // Cover image URL determination
         const coverExt = doujin.images.cover.t === 'j' ? 'jpg' : 'png';
         const coverUrl = `https://t3.nhentai.net/galleries/${encodeURIComponent(media_id)}/cover.${coverExt}`;
 
@@ -37,7 +36,6 @@ async function downloadDoujin(doujinId) {
             groups: doujin.tags.filter(tag => tag.type === 'group').map(tag => tag.name).join(', '),
             languages: doujin.tags.filter(tag => tag.type === 'language').map(tag => tag.name).join(', '),
             categories: doujin.tags.filter(tag => tag.type === 'category').map(tag => tag.name).join(', ')
-            //uploaded: doujin.upload_date
         };
     } catch (error) {
         console.error("Failed to fetch doujin info:", error.message);
@@ -50,6 +48,8 @@ function delay(ms) {
 }
 
 module.exports = (bot) => {
+
+    // Function to handle sending doujin information
     async function handleNhentaiCommand(chatId, doujinId) {
         const doujin = await downloadDoujin(doujinId);
         if (!doujin) {
@@ -77,7 +77,6 @@ module.exports = (bot) => {
 *Categories*: ${doujin.categories || 'N/A'}
 *Total Pages*: ${doujin.pages}
                 `,
-                //*Uploaded*: ${doujin.uploaded || 'N/A'}
                 parse_mode: 'Markdown'
             });
         } catch (error) {
@@ -98,9 +97,9 @@ module.exports = (bot) => {
                 media: url,
                 caption: index === 0 ? `Pages ${i + 1}-${Math.min(i + batchSize, totalPages)}/${totalPages}` : undefined
             }));
-            
+
             bot.sendChatAction(chatId, 'upload_photo');
-            
+
             if (mediaGroup.length > 0) {
                 try {
                     await bot.sendMediaGroup(chatId, mediaGroup);
@@ -110,18 +109,43 @@ module.exports = (bot) => {
                 }
             }
 
-            // Wait for 10 seconds before sending the next batch, with additional delay for larger images
             const additionalWait = doujin.imageUrls.length > 20 ? 5000 : 0; // Add extra time if more than 20 pages
             await delay(10000 + additionalWait);
         }
     }
+
+    // Inline search query handler
+    bot.on('inline_query', async (query) => {
+        const { id, query: searchQuery } = query;
+
+        const doujins = await searchDoujin(searchQuery);
+
+        const results = doujins.map(doujin => {
+            let flag = '🇯🇵'; // Default flag is Japanese
+            if (doujin.language.toLowerCase() === 'english') flag = '🇺🇸';
+            else if (doujin.language.toLowerCase() === 'chinese') flag = '🇨🇳';
+
+            return {
+                type: 'article',
+                id: doujin.id.toString(),
+                title: `${flag} ${doujin.title}`,
+                input_message_content: {
+                    message_text: `/nhentai ${doujin.id}`,
+                },
+                thumb_url: `https://t3.nhentai.net/galleries/${doujin.media_id}/thumb.jpg`,
+                description: `ID: ${doujin.id} | Language: ${doujin.language}`,
+            };
+        });
+
+        bot.answerInlineQuery(id, results);
+    });
 
     bot.onText(/\/nhentai(\s*\d+)?/, async (msg, match) => {
         const chatId = msg.chat.id;
         const doujinId = match[1] ? match[1].trim() : null;
 
         if (!doujinId) {
-            bot.sendMessage(chatId, "Please provide the NUKE code! 👀 \n\nExample: `/nhentai 123456`", {
+            bot.sendMessage(chatId, "Please provide the NUKE code! 👀 \n\nExample: `/nhentai 123456` or search via @animedrive_bot<search query>", {
                 parse_mode: 'Markdown'
             });
             return;
@@ -129,5 +153,38 @@ module.exports = (bot) => {
 
         await handleNhentaiCommand(chatId, doujinId);
     });
-
 };
+
+// Function to search doujinshi using inline query
+async function searchDoujin(query) {
+    const searchUrl = `https://nhentai.net/search/?q=${encodeURIComponent(query)}&sort=popular`;
+
+    try {
+        const response = await axios.get(searchUrl);
+        const $ = cheerio.load(response.data);
+        const results = [];
+
+        $('.gallery').each((index, element) => {
+            if (index < 30) { // Limit to top 30
+                const id = $(element).find('a').attr('href').split('/')[2];
+                const title = $(element).find('.caption').text().trim();
+                const media_id = $(element).find('a > img').attr('data-src').split('/')[4];
+                const isEnglish = title.toLowerCase().includes("english");
+                const isChinese = title.toLowerCase().includes("chinese");
+                const language = isEnglish ? 'English' : (isChinese ? 'Chinese' : 'Japanese');
+
+                results.push({ 
+                    id, 
+                    title, 
+                    language,
+                    media_id
+                });
+            }
+        });
+
+        return results;
+    } catch (error) {
+        console.error('Failed to search doujinshi:', error.message);
+        return [];
+    }
+}
