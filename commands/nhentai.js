@@ -13,7 +13,7 @@ async function downloadDoujin(doujinId) {
         const media_id = doujin.media_id;
 
         const imageUrls = doujin.images.pages.map((page, index) => {
-            let ext = page.t === 'j' ? 'jpg' : 'png'; 
+            let ext = page.t === 'j' ? 'jpg' : 'png';
             return `https://i7.nhentai.net/galleries/${encodeURIComponent(media_id)}/${index + 1}.${ext}`;
         });
 
@@ -49,7 +49,6 @@ function delay(ms) {
 
 module.exports = (bot) => {
 
-    // Function to handle sending doujin information
     async function handleNhentaiCommand(chatId, doujinId) {
         const doujin = await downloadDoujin(doujinId);
         if (!doujin) {
@@ -59,7 +58,6 @@ module.exports = (bot) => {
 
         bot.sendChatAction(chatId, 'upload_photo');
 
-        // Send doujin information with cover image URL
         try {
             await bot.sendPhoto(chatId, doujin.cover, {
                 caption: `
@@ -145,14 +143,25 @@ module.exports = (bot) => {
         const doujinId = match[1] ? match[1].trim() : null;
 
         if (!doujinId) {
-            bot.sendMessage(chatId, "Please provide the NUKE code! 👀 \n\nExample: `/nhentai 123456` or search via @animedrive_bot<search query>", {
-                parse_mode: 'Markdown'
+            bot.sendMessage(chatId, "Please provide the NUKE code! 👀 \n\nExample: `/nhentai 123456` or use the search button below.", {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: "🔍 Search Doujins",
+                                switch_inline_query_current_chat: ''
+                            }
+                        ]
+                    ]
+                }
             });
             return;
         }
 
         await handleNhentaiCommand(chatId, doujinId);
     });
+
 };
 
 // Function to search doujinshi using inline query
