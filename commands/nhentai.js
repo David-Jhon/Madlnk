@@ -21,7 +21,7 @@ async function createTelegraPage(title, authorName, content) {
 // Process images for Telegra.ph
 async function processImagesForTelegra(doujin) {
     const imageUrls = doujin.imageUrls;
-    const pagesPerPart = 120; // Number of pages per Telegra.ph page
+    const pagesPerPart = 100; // Number of pages per Telegra.ph page
     const totalPages = doujin.pages;
 
     const telegraPageUrls = [];
