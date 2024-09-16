@@ -2,12 +2,13 @@ const axios = require("axios");
 const cheerio = require("cheerio");
 const Nhentai = require("../DB/nhentai");
 
-async function createTelegraPage(title, authorName, content) {
+async function createTelegraPage(title, authorName, authorUrl, content) {
     try {
         const response = await axios.post(`https://api.telegra.ph/createPage`, {
             access_token:process.env.TELEGRAPH_ACCESS_TOKEN,
             title: title,
             author_name: authorName,
+            author_url: authorUrl,
             content: content,
             return_content: true,
         });
@@ -40,7 +41,7 @@ async function processImagesForTelegra(doujin) {
         const partNumber = hasMultipleParts ? `_Part-${Math.floor(start / pagesPerPart) + 1}` : '';
         const partTitle = `${doujin.id}-${doujin.title.english || doujin.title.pretty || doujin.title.japanese || "Unknown Title"}${partNumber}`;
 
-        const telegraPageUrl = await createTelegraPage(partTitle, "Anonymous", content);
+        const telegraPageUrl = await createTelegraPage(partTitle, "@animedrive_bot", "https://t.me/animedrive_bot", content);
 
         if (telegraPageUrl) {
             telegraPageUrls.push(telegraPageUrl);
@@ -251,7 +252,7 @@ module.exports = (bot) => {
 
             const doujin = await downloadDoujin(doujinId);
             if (doujin) {
-                const batchSize = 6;
+                const batchSize = 9;
                 const totalPages = doujin.pages;
 
                 for (let i = 0; i < doujin.imageUrls.length; i += batchSize) {
