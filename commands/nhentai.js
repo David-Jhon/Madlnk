@@ -4,7 +4,7 @@ const Nhentai = require("../DB/nhentai");
 const FormData = require('form-data');
 const { createTelegraPage, processImagesForTelegra } = require('../utilities/telegraUtils');
 
-const nhentaiCooldowns = new Map();
+
 // Download doujin data
 async function downloadDoujin(doujinId) {
     const url = `https://nhentai.net/api/gallery/${encodeURIComponent(doujinId)}`;
@@ -73,11 +73,11 @@ module.exports = (bot) => {
             if (existingDoujin.previews.telegraph_urls && Array.isArray(existingDoujin.previews.telegraph_urls)) {
                 if (existingDoujin.previews.telegraph_urls.length === 1) {
                     // Single link
-                    readOnlineLinks = `[Instant View](${existingDoujin.previews.telegraph_urls[0]})`;
+                    readOnlineLinks = `[View on Telegraph](${existingDoujin.previews.telegraph_urls[0]})`;
                 } else {
                     // Multiple links
                     readOnlineLinks = existingDoujin.previews.telegraph_urls
-                        .map((url, index) => `[Instant View Part ${index + 1}](${url})`)
+                        .map((url, index) => `[View Part ${index + 1} on Telegraph](${url})`)
                         .join("\n➤ ");
                 }
             }
@@ -161,9 +161,9 @@ module.exports = (bot) => {
 
             // Generate the "Read online" section for the new doujin
             const readOnlineLinks = telegraPageUrls.length === 1
-                ? `[Instant View](${telegraPageUrls[0]})`
+                ? `[View on Telegraph](${telegraPageUrls[0]})`
                 : telegraPageUrls
-                    .map((url, index) => `[Instant View Part ${index + 1} ](${url})`)
+                    .map((url, index) => `[View Part ${index + 1} on Telegraph](${url})`)
                     .join("\n➤ ");
 
             // Send the doujin information and Telegra.ph links
@@ -197,13 +197,18 @@ module.exports = (bot) => {
                 },
             });
         } else {
-            bot.sendMessage(chatId, `Error while processing your request. Please try again later.`);
+            bot.sendMessage(chatId, `Failed to create Telegra.ph pages.`);
         }
     }
 
+
+
+
+
     bot.on("callback_query", async (query) => {
         const chatId = query.message.chat.id;
-        const callbackData = query.data;
+        const callbackData = query.data; //error need to fix this
+
 
         if (callbackData.startsWith("download_")) {
             const doujinId = callbackData.split("_")[1];
@@ -239,14 +244,14 @@ module.exports = (bot) => {
                             );
                             bot.sendMessage(
                                 chatId,
-                                `Failed to send images. Please try again later.`,
+                                `Failed to send images in batch.`,
                             );
                         }
                     }
                     await delay(10000);
                 }
             } else {
-                bot.sendMessage(chatId, "Failed to download doujin images. Please try again later.");
+                bot.sendMessage(chatId, "Failed to download doujin images.");
             }
         }
     });
@@ -280,40 +285,7 @@ module.exports = (bot) => {
     bot.onText(/\/nhentai(\s*\d+)?/, async (msg, match) => {
         const chatId = msg.chat.id;
         const doujinId = match[1] ? match[1].trim() : null;
-        const userId = msg.from.id;
-        const now = Date.now();
-    
-        if (nhentaiCooldowns.has(userId)) {
-            const { cooldownEnd, cooldownMessageId } = nhentaiCooldowns.get(userId);
-            const remainingTime = (cooldownEnd - now) / 1000;
-    
-            if (remainingTime > 0) {
-                const cooldownMessage = `You are on cooldown. Please wait ${remainingTime.toFixed(1)} seconds before using the /nhentai command again.`;
-    
-                if (cooldownMessageId) {
-                    // Edit the existing message
-                    try {
-                        await bot.editMessageText(cooldownMessage, {
-                            chat_id: chatId,
-                            message_id: cooldownMessageId,
-                        });
-                    } catch (error) {
-                        console.error("Failed to edit message:", error.message);
-                    }
-                } else {
-                    // Send a new cooldown message
-                    const sentMessage = await bot.sendMessage(chatId, cooldownMessage);
-                    nhentaiCooldowns.set(userId, { cooldownEnd, cooldownMessageId: sentMessage.message_id });
-                }
-    
-                return; 
-            } else {
-                if (cooldownMessageId) {
-                    await bot.deleteMessage(chatId, cooldownMessageId).catch(() => {});
-                }
-            }
-        }
-    
+
         if (!doujinId) {
             bot.sendMessage(
                 chatId,
@@ -344,16 +316,10 @@ module.exports = (bot) => {
             );
             return;
         }
-    
-        await handleNhentaiCommand(chatId, doujinId);
-    
-        const cooldownTime = 60 * 1000;
-        const cooldownEnd = now + cooldownTime;
-    
-        nhentaiCooldowns.set(userId, { cooldownEnd, cooldownMessageId: null });
-    });
 
-}    
+        await handleNhentaiCommand(chatId, doujinId);
+    });
+};
 // search doujinshi using inline query
 async function searchDoujin(query) {
     const baseUrl = 'https://nhentai.net/';
@@ -382,7 +348,7 @@ async function searchDoujin(query) {
             }
 
             $(selector).each((index, element) => {
-                if (index < 30) {  // Limit to top 30 results
+                if (index < 40) {  // Limit to top 30 results
                     const id = $(element).find("a").attr("href").split("/")[2];
                     const title = $(element).find(".caption").text().trim();
                     const media_id = $(element).find("a > img").attr("data-src").split("/")[4];
