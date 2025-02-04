@@ -25,8 +25,22 @@ const userSchema = new mongoose.Schema({
   anilistUsername: {
     type: String,
     default: null,
-    sparse: true,  // Allows null values
+    sparse: true,
   },
+  anilistId: {
+    type: Number,
+    default: null,
+    sparse: true,
+  },
+  
+  lastActivity: {
+    type: Date,
+    default: Date.now
+  },
+  joined: {
+    type: Date,
+    default: Date.now
+  }
 });
 
 module.exports = mongoose.model('User', userSchema);

@@ -1,131 +1,137 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const crypto = require('crypto');
 
 const FILLERS = {};
 
-function searchFiller(query) {
-  return axios.get("https://www.animefillerlist.com/shows")
-    .then(response => {
-      const $ = cheerio.load(response.data);
-      const index = {};
-      $('.Group li').each((i, element) => {
-        const href = $(element).find('a').attr('href').split('/').pop();
-        const text = $(element).text().trim();
-        index[text] = href;
-      });
-      const results = {};
-      Object.keys(index).forEach(key => {
-        if (key.toLowerCase().includes(query.toLowerCase())) {
-          results[key] = index[key];
-        }
-      });
-      return results;
-    });
-}
+module.exports = {
+  name: 'fillers',
+  version: 1.0,
+  longDescription: "Find anime filler episodes with categorized breakdowns of canon and filler episodes",
+  shortDescription: "Search for anime fillers",
+  guide: '{pn} <anime name>',
+  category: ['Anime & Manga Information', 3],
+  lang: {
+    syntaxError: "The command you are using is wrong syntax, please type %1help %2 to see the details of how to use this command",
+    usage: "Usage: /fillers<anime_name>\n\nExample: /fillers one piece",
+    noResults: "No fillers found for the given anime. Make sure to use the correct title",
+    error: "An error occurred while retrieving filler information."
+  },
 
-function parseFiller(fillerId) {
-  const url = `https://www.animefillerlist.com/shows/${fillerId}`;
-  return axios.get(url)
-    .then(response => {
-      const $ = cheerio.load(response.data);
-      const result = {
-        filler_id: fillerId,
-        total_ep: "",
-        mixed_ep: "",
-        filler_ep: "",
-        ac_ep: ""
-      };
-
-      const allEp = $('#Condensed .Episodes');
-
-      if (allEp.length > 0) {
-        result.total_ep = $(allEp[0]).find('a').map((i, el) => $(el).text()).get().join(", ");
-      }
-      if (allEp.length > 1) {
-        result.mixed_ep = $(allEp[1]).find('a').map((i, el) => $(el).text()).get().join(", ");
-      }
-      if (allEp.length > 2) {
-        result.filler_ep = $(allEp[2]).find('a').map((i, el) => $(el).text()).get().join(", ");
-      }
-      if (allEp.length > 3) {
-        result.ac_ep = $(allEp[3]).find('a').map((i, el) => $(el).text()).get().join(", ");
-      }
-      return result;
-    });
-}
-
-module.exports = (bot, callbackListeners) => {
-  bot.onText(/\/fillers$/, (msg) => {
+  onStart: async ({ bot, msg, args }) => {
     const chatId = msg.chat.id;
-    bot.sendMessage(chatId, "Give some anime name to search fillers for\nexample: /fillers one piece");
-  });
+    
+    if (!args || args.length === 0) {
+      return bot.sendMessage(chatId, module.exports.lang.usage);
+    }
 
-  bot.onText(/\/fillers (.+)/, async (msg, match) => {
-    const chatId = msg.chat.id;
-    const query = match[1].trim();
+    const query = args.join(' ').trim();
+
     try {
       const results = await searchFiller(query);
-
       if (Object.keys(results).length === 0) {
-        bot.sendMessage(chatId, "No fillers found for the given anime");
-        return;
+        return bot.sendMessage(chatId, module.exports.lang.noResults);
       }
 
       const buttons = Object.keys(results).map((title) => {
-        const fillerKey = `${title}_${msg.from.id}`;
-        FILLERS[fillerKey] = results[title];
-        return [{ text: title, callback_data: `fill_${fillerKey}` }];
+        const fillerKey = generateUniqueKey(title, msg.from.id);
+        FILLERS[fillerKey] = { id: results[title], title };
+        return [{ 
+          text: title, 
+          callback_data: `fillers:select:${fillerKey}` 
+        }];
       });
 
-      bot.sendMessage(chatId, "Pick the anime you want to see fillers list for:", {
-        reply_markup: {
-          inline_keyboard: buttons
-        }
+      return bot.sendMessage(chatId, "🔍 Select the anime from the list:", {
+        reply_markup: { inline_keyboard: buttons }
       });
     } catch (error) {
       console.error(error);
-      bot.sendMessage(chatId, "An error occurred while searching for fillers.");
+      return bot.sendMessage(chatId, module.exports.lang.error);
     }
-  });
+  },
 
-  // Register the callback query handler for fillers
-  callbackListeners.set('fill_', async (callbackQuery) => {
-    const msg = callbackQuery.message;
-    const data = callbackQuery.data;
-    const match = data.match(/fill_(.+)/);
-
-    if (!match) {
-      return;
-    }
-
-    const fillerKey = match[1];
-    const fillerId = FILLERS[fillerKey];
-    const animeName = fillerKey.split('_')[0];
-
-    if (!fillerId) {
-      bot.answerCallbackQuery(callbackQuery.id, { text: "No data found." });
-      return;
+  onCallback: async ({ bot, callbackQuery, params }) => {
+    const [action, fillerKey] = params;
+    const message = callbackQuery.message;
+    
+    if (action !== 'select' || !FILLERS[fillerKey]) {
+      return bot.answerCallbackQuery(callbackQuery.id, { text: "Invalid request" });
     }
 
     try {
+      const { id: fillerId, title: animeName } = FILLERS[fillerKey];
       const result = await parseFiller(fillerId);
-      let messageText = `*Fillers for anime* \`${animeName}\`\n\n`;
-      messageText += `*Manga Canon episodes:*\n${result.total_ep || 'None'}\n\n`;
-      messageText += `*Mixed Canon/Filler Episodes:*\n${result.mixed_ep || 'None'}\n\n`;
-      messageText += `*Fillers:*\n${result.filler_ep || 'None'}\n\n`;
-      if (result.ac_ep) {
-        messageText += `*Anime Canon episodes:*\n${result.ac_ep || 'None'}\n\n`;
-      }
-
-      bot.editMessageText(messageText, {
-        chat_id: msg.chat.id,
-        message_id: msg.message_id,
-        parse_mode: 'Markdown'
+      
+      const messageText = formatFillerMessage(animeName, result);
+      
+      await bot.editMessageText(messageText, {
+        chat_id: message.chat.id,
+        message_id: message.message_id,
+        parse_mode: 'Markdown',
+        reply_markup: { inline_keyboard: [] }
       });
+      
+      return bot.answerCallbackQuery(callbackQuery.id);
     } catch (error) {
       console.error(error);
-      bot.answerCallbackQuery(callbackQuery.id, { text: "An error occurred while retrieving fillers." });
+      return bot.answerCallbackQuery(callbackQuery.id, { text: module.exports.lang.error });
     }
-  });
+  }
 };
 
+function generateUniqueKey(animeName, userId) {
+  return crypto.createHash('md5')
+    .update(`${animeName}_${userId}`)
+    .digest('hex');
+}
+
+function formatFillerMessage(animeName, result) {
+  return `*${animeName} Filler Guide* 📺\n\n` +
+    `📗 *Manga Canon Episodes:*\n${result.total_ep || 'None'}\n\n` +
+    `🎨 *Mixed Episodes:*\n${result.mixed_ep || 'None'}\n\n` +
+    `🍿 *Filler Episodes:*\n${result.filler_ep || 'None'}\n\n` +
+    `📺 *Anime Canon Episodes:*\n${result.ac_ep || 'None'}`;
+}
+
+async function searchFiller(query) {
+  const response = await axios.get("https://www.animefillerlist.com/shows");
+  const $ = cheerio.load(response.data);
+  const index = {};
+
+  $('.Group li').each((i, element) => {
+    const href = $(element).find('a').attr('href').split('/').pop();
+    const text = $(element).text().trim();
+    index[text] = href;
+  });
+
+  return Object.entries(index).reduce((acc, [title, href]) => {
+    if (title.toLowerCase().includes(query.toLowerCase())) {
+      acc[title] = href;
+    }
+    return acc;
+  }, {});
+}
+
+async function parseFiller(fillerId) {
+  const response = await axios.get(`https://www.animefillerlist.com/shows/${fillerId}`);
+  const $ = cheerio.load(response.data);
+  const result = {
+    total_ep: "",
+    mixed_ep: "",
+    filler_ep: "",
+    ac_ep: ""
+  };
+
+  $('#Condensed .Episodes').each((i, section) => {
+    const episodes = $(section).find('a').map((i, el) => $(el).text()).get().join(', ');
+    switch(i) {
+      case 0: result.total_ep = episodes; break;
+      case 1: result.mixed_ep = episodes; break;
+      case 2: result.filler_ep = episodes; break;
+      case 3: result.ac_ep = episodes; break;
+    }
+  });
+
+  return result;
+}

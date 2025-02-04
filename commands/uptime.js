@@ -1,10 +1,20 @@
-const os = require('os');
+const os = require("os");
 
-module.exports = function (bot) {
-  bot.onText(/\/uptime/, async (msg) => {
+module.exports = {
+  name: "uptime",
+  version: 1.0,
+  longDescription: "Displays system and bot uptime along with memory, CPU, and other statistics.",
+  shortDescription: "Show system & bot uptime and stats.",
+  category: ['Admin', 99],
+  guide: "{pn}",
+  lang: {
+    loading: "🔄 Loading...",
+    error: "❌ An error occurred while fetching system statistics."
+  },
+  onStart: async ({ bot, msg, args }) => {
     const chatId = msg.chat.id;
     const start = Date.now();
-    const sentMessage = await bot.sendMessage(chatId, '🔄 Loading...');
+    const sentMessage = await bot.sendMessage(chatId, module.exports.lang.loading);
 
     try {
       const systemUptime = os.uptime();
@@ -24,7 +34,7 @@ module.exports = function (bot) {
       const totalMemory = os.totalmem();
       const freeMemory = os.freemem();
       const usedMemory = totalMemory - freeMemory;
-      const memoryUsagePercentage = (usedMemory / totalMemory * 100).toFixed(2);
+      const memoryUsagePercentage = ((usedMemory / totalMemory) * 100).toFixed(2);
 
       const cpuCores = os.cpus().length;
       const cpuModel = os.cpus()[0].model;
@@ -41,7 +51,7 @@ module.exports = function (bot) {
         `• Bot Uptime: ${botUp.days}d ${botUp.hours}h ${botUp.minutes}m ${botUp.seconds}s\n` +
         `• Total Memory: ${(totalMemory / 1024 / 1024 / 1024).toFixed(2)} GB\n` +
         `• Free Memory: ${(freeMemory / 1024 / 1024 / 1024).toFixed(2)} GB\n` +
-        `• Memory Usage: ${(usedMemory / 1024 ** 2).toFixed(2)} MB\n` +
+        `• Memory Usage: ${(usedMemory / 1024 / 1024).toFixed(2)} MB\n` +
         `• Memory Usage Percentage: ${memoryUsagePercentage}%\n` +
         `• CPU Cores: ${cpuCores}\n` +
         `• CPU Model: ${cpuModel}\n` +
@@ -49,17 +59,17 @@ module.exports = function (bot) {
         `• Platform: ${platform}\n` +
         `• Ping: \`${ping}ms\``;
 
-      bot.editMessageText(messageContent, {
+      await bot.editMessageText(messageContent, {
         chat_id: sentMessage.chat.id,
         message_id: sentMessage.message_id,
-        parse_mode: 'Markdown',
+        parse_mode: "Markdown"
       });
     } catch (err) {
       console.error(err);
-      bot.editMessageText('❌ An error occurred while fetching system statistics.', {
+      await bot.editMessageText(module.exports.lang.error, {
         chat_id: sentMessage.chat.id,
-        message_id: sentMessage.message_id,
+        message_id: sentMessage.message_id
       });
     }
-  });
+  },
 };

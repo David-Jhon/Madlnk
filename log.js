@@ -6,76 +6,72 @@ const botToken = process.env.BOT_TOKEN;
 let loggingEnabled = true;
 
 async function logMessage(msg) {
-  const chatId = msg.chat.id || '';
+  const chatId = msg.chat.id?.toString() || '';
   const senderName = msg.from.first_name + (msg.from.last_name ? ` ${msg.from.last_name}` : '');
 
-  if (chatId == adminGroupChatId) {
-    // Skip logging for messages from admin group chat
+  if (chatId === adminGroupChatId) {
     return;
   }
 
-  let logEntry = `🤖『 Bot Logs 』\n\n👤 | ${senderName}\n🪪 | @${msg.from.username}\nID  | ${msg.from.id}\n💬 | ${chatId}\n\nMessage:\n» `;
+  let logEntry = `🤖『 Bot Logs 』\n\n👤 | ${senderName}\n🪪 | @${msg.from.username || 'no-username'}\nID  | ${msg.from.id}\n💬 | ${chatId}\n\nMessage:\n» `;
 
   if (msg.text) {
     logEntry += msg.text;
     console.log(logEntry);
 
-    // Only send log to admin chat if logging is enabled
     if (loggingEnabled) {
       try {
-        await sendTelegramMessage(botToken, adminGroupChatId, logEntry);
+        await sendTelegramMessage(adminGroupChatId, logEntry);
       } catch (error) {
-        console.error('Failed to send log message to admin group chat:', error);
+        console.error('Failed to send log:', error);
       }
     }
-  } else {
-    // Forward non-text messages to the admin group chat if logging is enabled
-    if (loggingEnabled) {
-      try {
-        await forwardTelegramMessage(botToken, adminGroupChatId, msg.chat.id, msg.message_id);
-      } catch (error) {
-        console.error('Failed to forward message to admin group chat:', error);
-      }
+  } else if (loggingEnabled) {
+    try {
+      await forwardTelegramMessage(msg.chat.id, msg.message_id);
+    } catch (error) {
+      console.error('Failed to forward message:', error);
     }
   }
 }
 
-async function sendTelegramMessage(botToken, chatId, text) {
+async function sendTelegramMessage(chatId, text) {
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
   try {
     await axios.post(url, {
       chat_id: chatId,
-      text: text
+      text: text,
+      parse_mode: 'Markdown'
     });
   } catch (error) {
-    console.error('Failed to send log message via Telegram API:', error);
+    console.error('Telegram API error:', error.response?.data);
   }
 }
 
-async function forwardTelegramMessage(botToken, chatId, fromChatId, messageId) {
+async function forwardTelegramMessage(fromChatId, messageId) {
   const url = `https://api.telegram.org/bot${botToken}/forwardMessage`;
   try {
     await axios.post(url, {
-      chat_id: chatId,
+      chat_id: adminGroupChatId,
       from_chat_id: fromChatId,
       message_id: messageId
     });
   } catch (error) {
-    console.error('Failed to forward message via Telegram API:', error);
+    console.error('Forward message error:', error.response?.data);
   }
 }
 
 async function processCommand(msg, bot) {
-  if (msg.from.id !== 1263175965) return;
+  if (msg.from.id.toString() !== process.env.OWNER_ID) return;
 
-  const command = msg.text.split(' ')[1];
-
+  const [_, command] = msg.text.split(' ');
+  
   if (command === 'off') {
     loggingEnabled = false;
-    await bot.sendMessage(msg.chat.id, 'Logging is now turned off.');
+    await bot.sendMessage(msg.chat.id, '📴 | Logging disabled');
   } else if (command === 'on') {
     loggingEnabled = true;
-    await bot.sendMessage(msg.chat.id, 'Logging is now turned on.');
+    await bot.sendMessage(msg.chat.id, '📲 | Logging enabled');
   }
 }
 
