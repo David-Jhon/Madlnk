@@ -2,7 +2,7 @@ const axios = require("axios");
 
 const userStates = new Map();
 const cooldowns = new Map();
-const REQUEST_COOLDOWN = 300000;
+const REQUEST_COOLDOWN = 120000;
 
 async function sendAdminMessage(text) {
   const response = await axios.post(
@@ -57,8 +57,11 @@ module.exports = {
   onChat: async ({ bot, msg, args }) => {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
-    if (userStates.get(userId)?.awaitingRequest) {
-      const userState = userStates.get(userId);
+    const userState = userStates.get(userId);
+    if (userState?.awaitingRequest) {
+      /*if (msg.text.startsWith('/')) {
+        return;
+      }*/
       try {
         await sendAdminMessage(
           `✉️ | A new task from User\n👤 | @${msg.from.username}\n🪪 | UID: ${userId}\n\n➤  ${msg.text}`
