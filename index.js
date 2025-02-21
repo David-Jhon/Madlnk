@@ -6,11 +6,10 @@ const app = require('./server');
 const userModel = require('./DB/User.js');
 const connectDb = require('./DB/db.js');
 
+const { logMessage, processCommand, logCommandLoad, logDbConnection, logBotStartup } = require('./log.js');
+
 const port = process.env.PORT || 4000;
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
-
-const { logMessage, processCommand } = require('./log.js');
-
 const commands = new Map();
 global.commands = commands;
 
@@ -19,6 +18,7 @@ const ERROR_MESSAGES = {
   GENERAL_ERROR: "An error occurred while processing your request",
   DB_ERROR: "Database operation failed"
 };
+
 
 function loadCommands() {
   try {
@@ -42,79 +42,75 @@ function loadCommands() {
           try {
             await command.onStart({ bot, msg, args });
           } catch (error) {
-            console.error(`Command ${command.name} error:`, error);
+            handleError (`Command ${command.name}`, error);
             await bot.sendMessage(chatId, ERROR_MESSAGES.GENERAL_ERROR);
           }
         });
       }
     });
 
-    console.log(`Loaded ${commands.size} commands: ${loadedFiles.join(', ')}`);
+    logCommandLoad(loadedFiles, commands);
   } catch (error) {
-    console.error('Command loading failed:', error);
+    handleError (`Command loading failed`, error);
     process.exit(1);
   }
 }
 
-  //DB
-  async function handleUserData(msg) {
-    try {
-      const updateData = {
-        firstName: msg.from.first_name,
-        lastName: msg.from.last_name,
-        username: msg.from.username,
-        isBot: msg.from.is_bot,
-        lastActivity: new Date()
-      };
-  
-      await userModel.findOneAndUpdate(
-        { userId: msg.from.id },
-        { $set: updateData, $setOnInsert: { joined: new Date() } },
-        { upsert: true, runValidators: true }
-      );
-    } catch (error) {
-      console.error("User data update error:", error);
-      throw new Error(ERROR_MESSAGES.DB_ERROR);
-    }
-  }
+// DB Handling
+async function handleUserData(msg) {
+  try {
+    const updateData = {
+      firstName: msg.from.first_name,
+      lastName: msg.from.last_name,
+      username: msg.from.username,
+      isBot: msg.from.is_bot,
+      lastActivity: new Date()
+    };
 
-  //error handler
-  function handleError(context, error) {
-    console.error(`Error in ${context}:`, error);
-    if (error.message in ERROR_MESSAGES) {
-      return ERROR_MESSAGES[error.message];
-    }
-    return ERROR_MESSAGES.GENERAL_ERROR;
+    await userModel.findOneAndUpdate(
+      { userId: msg.from.id },
+      { $set: updateData, $setOnInsert: { joined: new Date() } },
+      { upsert: true, runValidators: true }
+    );
+  } catch (error) {
+    handleError (`User data update error`, error);
+    throw new Error(ERROR_MESSAGES.DB_ERROR);
   }
+}
+
+// Error handler
+function handleError(context, error) {
+  const errorMessage = `Error in ${context}:`;
+  console.error(errorMessage, error);
+  if (error.message in ERROR_MESSAGES) {
+    return ERROR_MESSAGES[error.message];
+  }
+  return ERROR_MESSAGES.GENERAL_ERROR;
+}
 
 bot.on('callback_query', async (callbackQuery) => {
   try {
     const [commandName, ...params] = callbackQuery.data.split(':');
     const command = commands.get(commandName);
-    
+
     if (command && command.onCallback) {
       await command.onCallback({ bot, callbackQuery, params });
     } else {
       await bot.answerCallbackQuery(callbackQuery.id);
     }
   } catch (error) {
-    console.error('Callback error:', error);
+    handleError (`Callback error`, error);
     await bot.answerCallbackQuery(callbackQuery.id, { text: 'Error processing request' });
   }
 });
-
-
 
 bot.onText(/\/log (.+)/, (msg, match) => {
   processCommand(msg, bot);
 });
 
-
 bot.on('message', async (msg) => {
   try {
-
-    if (!msg.text || msg.from.is_bot) return;
-
+    if (msg.from.is_bot) return;
 
     await Promise.all([
       logMessage(msg, bot),
@@ -124,43 +120,42 @@ bot.on('message', async (msg) => {
     const text = msg.text?.trim();
     if (!text) return;
 
-     for (const command of commands.values()) {
+    for (const command of commands.values()) {
       if (command.onChat) {
         try {
           await command.onChat({ bot, msg, args: text.split(' ') });
         } catch (error) {
-          console.error(`Error in chat handler for command ${command.name}:`, error);
+          handleError (`Error in chat handler for command ${command.name}`, error);
         }
       }
     }
   } catch (error) {
-    console.error('Error processing message:', error);
+    handleError (`Error processing message`, error);
   }
 });
-
 
 async function main() {
   try {
     await connectDb();
-    console.log("Database connected successfully");
-    
+    logDbConnection(connectDb)
+
     loadCommands();
-    
+
     app.listen(port, () => {
-      console.log(`Bot app with webpage listening on port http://localhost:${port}`);
+      logBotStartup(port);
     });
 
-    // Add global error handlers
+    // global error handlers
     process.on('unhandledRejection', (reason) => {
-      console.error('Unhandled Rejection:', reason);
+      console.error(`Unhandled Rejection:`, reason);
     });
 
     process.on('uncaughtException', (error) => {
-      console.error('Uncaught Exception:', error);
+      console.error(`Uncaught Exception:`, error);
       process.exit(1);
     });
   } catch (error) {
-    console.error("Initialization failed:", error);
+    console.error(`Initialization failed:`, error);
     process.exit(1);
   }
 }
