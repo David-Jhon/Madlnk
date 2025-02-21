@@ -3,6 +3,14 @@ const axios = require('axios');
 const adminGroupChatId = process.env.GC_ID;
 const botToken = process.env.BOT_TOKEN;
 
+const COLORS = {
+  RESET: "\x1b[0m",
+  RED: '\x1b[31m%s\x1b[0m',
+  GREEN: '\x1b[32m%s\x1b[0m',
+  YELLOW: '\x1b[33m%s\x1b[0m',
+  CYAN: '\x1b[36m%s\x1b[0m',
+};
+
 const timestamp = () => new Date().toISOString().replace('T', ' ').split('.')[0];
 
 let loggingEnabled = true;
@@ -12,14 +20,13 @@ async function logMessage(msg) {
   const senderName =
     msg.from.first_name + (msg.from.last_name ? ` ${msg.from.last_name}` : '');
 
-    console.log('\x1b[36m%s\x1b[0m', `[${timestamp()}] [INFO]\n`, "MESSAGE:", msg, `\n`);
-
+  console.log(COLORS.CYAN, `[${timestamp()}] [INFO]\n`, "MESSAGE:", msg, `\n`);
 
   if (chatId === adminGroupChatId) {
     return;
   }
 
-  let logEntry = `🤖『 Bot Logs 』\n\n👤 | ${senderName}\n🪪 | @${msg.from.username || 'no-username'}\nID  | ${msg.from.id}\n💬 | ${chatId}\n\nMessage:\n» `;
+  let logEntry = `🤖『 Bot Logs 』\n\n👤 | ${senderName}\n🪪 | @${msg.from.username || 'no-username'}\n🆔  | ${msg.from.id}\n💬 | ${chatId}\n\nMessage:\n» `;
 
   if (msg.text) {
     logEntry += msg.text;
@@ -83,4 +90,23 @@ async function processCommand(msg, bot) {
   }
 }
 
-module.exports = { logMessage, processCommand };
+function logCommandLoad(loadedFiles, commands) {
+  console.log(COLORS.RED, '────────────── LOAD COMMANDS ──────────────');
+  console.log(COLORS.CYAN, `[${timestamp()}] [INFO] Loading commands...`);
+  console.log(COLORS.GREEN, `[${timestamp()}] [SUCCESS] Loaded ${commands.size} commands.`);
+  console.log(COLORS.CYAN, `[${timestamp()}] Commands: ${loadedFiles.join(', ')}`);
+}
+
+function logDbConnection() {
+  console.log(COLORS.RED, `────────────── DATABASE CONNECTION ──────────────`);
+  console.log(COLORS.CYAN, `[${timestamp()}] [INFO] Connecting to database...`);
+  console.log(COLORS.GREEN, `[${timestamp()}] [SUCCESS] Database connected successfully.`);
+}
+
+function logBotStartup(port) {
+  console.log(COLORS.RED, `────────────── BOT STARTUP ──────────────`);
+  console.log(COLORS.GREEN, `[${timestamp()}] [SUCCESS] Bot started successfully : http://localhost:${port}`);
+  console.log(COLORS.CYAN, `[${timestamp()}] The bot is now ready to receive messages from users.`);
+}
+
+module.exports = { logMessage, processCommand, logCommandLoad, logDbConnection, logBotStartup };
