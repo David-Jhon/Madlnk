@@ -9,18 +9,23 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
+    "dependencies": {
     "@types/node": "^18.0.6",
     "anilist-node": "^1.14.1",
     "axios": "^1.6.8",
+    "canvas": "^3.1.1",
+    "chalk": "^5.4.1",
     "cheerio": "^1.0.0-rc.12",
+    "cpu-stat": "^2.0.1",
+    "diskusage": "^1.2.0",
     "dotenv": "^16.4.7",
     "express": "^4.19.2",
+    "fs-extra": "^11.3.0",
     "moment-timezone": "^0.5.45",
     "mongodb": "^6.6.0",
     "mongoose": "^8.3.3",
     "node-fetch": "^2.7.0",
-    "node-telegram-bot-api": "^0.63.0"
-    
+    "node-telegram-bot-api": "^0.63.0",
+    "sqlite3": "^5.1.7"
   }
 }
