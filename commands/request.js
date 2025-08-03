@@ -10,7 +10,6 @@ async function sendAdminMessage(text) {
     {
       chat_id: process.env.GC_ID,
       text: text,
-      parse_mode: "HTML",
     }
   );
   return response.data;
@@ -59,9 +58,9 @@ module.exports = {
     const userId = msg.from.id;
     const userState = userStates.get(userId);
     if (userState?.awaitingRequest) {
-      /*if (msg.text.startsWith('/')) {
+      if (msg.text.startsWith('/')) {
         return;
-      }*/
+      }
       try {
         await sendAdminMessage(
           `✉️ | A new task from User\n👤 | @${msg.from.username}\n🪪 | UID: ${userId}\n\n➤  ${msg.text}`
