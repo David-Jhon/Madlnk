@@ -1,3 +1,4 @@
+// DB/User.js
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -12,7 +13,7 @@ const userSchema = new mongoose.Schema({
   },
   lastName: {
     type: String,
-    required: true,
+    // required: true,
   },
   isBot: {
     type: Boolean,
@@ -20,7 +21,8 @@ const userSchema = new mongoose.Schema({
   },
   username: {
     type: String,
-    required: true,
+    // required: true,
+    sparse: true,
   },
   anilistUsername: {
     type: String,
@@ -32,7 +34,10 @@ const userSchema = new mongoose.Schema({
     default: null,
     sparse: true,
   },
-  
+  isSubscribed: {
+    type: Boolean,
+    default: false,
+  },
   lastActivity: {
     type: Date,
     default: Date.now
