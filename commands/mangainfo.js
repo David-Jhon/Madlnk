@@ -110,17 +110,17 @@ module.exports = {
       await bot.sendPhoto(chatId, coverImage);
 
       const message = `❏ *Title:*\n${title}
-*➤ Type:* ${format}
-*➤ Genres:* ${genres}
-*➤ Tags:* ${tags}
-*➤ Start Date:* ${startDate}
-*➤ End Date:* ${endDate}
-*➤ Chapters:* ${chapters}
-*➤ Volumes:* ${volumes}
-*➤ Status:* ${status}
-*➤ Country:* ${countryOfOrigin}
-*➤ Score:* ${averageScore}
-*➤ Description:*\n${description}`;
+*➤ Type:* \`${format}\`
+*➤ Genres:* \`${genres}\`
+*➤ Tags:* \`${tags}\`
+*➤ Start Date:* \`${startDate}\`
+*➤ End Date:* \`${endDate}\`
+*➤ Chapters:* \`${chapters}\`
+*➤ Volumes:* \`${volumes}\`
+*➤ Status:* \`${status}\`
+*➤ Country:* \`${countryOfOrigin}\`
+*➤ Score:* \`${averageScore}\`
+*➤ Description:*\`\n${description}\``;
 
       await bot.sendMessage(chatId, message, {
         parse_mode: "Markdown",
