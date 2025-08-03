@@ -1,4 +1,5 @@
 const os = require("os");
+const userModel = require('../DB/User.js');
 
 module.exports = {
   name: "uptime",
@@ -36,6 +37,8 @@ module.exports = {
       const usedMemory = totalMemory - freeMemory;
       const memoryUsagePercentage = ((usedMemory / totalMemory) * 100).toFixed(2);
 
+      const totalUsers = await userModel.countDocuments();
+
       const cpuCores = os.cpus().length;
       const cpuModel = os.cpus()[0].model;
 
@@ -57,6 +60,7 @@ module.exports = {
         `• CPU Model: ${cpuModel}\n` +
         `• Node.js Version: ${nodeVersion}\n` +
         `• Platform: ${platform}\n` +
+        `• Total Users: ${totalUsers}\n` +
         `• Ping: \`${ping}ms\``;
 
       await bot.editMessageText(messageContent, {
