@@ -1,5 +1,10 @@
 const axios = require('axios');
 
+const groupChatIds = [
+  process.env.GC_ID,
+  process.env.STORAGE_GROUP_ID,
+].filter(id => id);
+
 const adminGroupChatId = process.env.GC_ID;
 const botToken = process.env.BOT_TOKEN;
 
@@ -22,11 +27,12 @@ async function logMessage(msg) {
 
   console.log(COLORS.CYAN, `[${timestamp()}] [INFO]\n`, "MESSAGE:", msg, `\n`);
 
-  if (chatId === adminGroupChatId) {
+
+  if (groupChatIds.includes(chatId)) {
     return;
   }
 
-  let logEntry = `🤖『 Bot Logs 』\n\n👤 | ${senderName}\n🪪 | @${msg.from.username || 'no-username'}\n🆔  | ${msg.from.id}\n💬 | ${chatId}\n\nMessage:\n» `;
+  let logEntry = `🤖『 Bot Logs 』\n\n👤 | ${senderName}\n🪪 | @${msg.from.username || 'no-username'}\n🆔 | ${msg.from.id}\n💬 | ${chatId}\n\nMessage:\n» `;
 
   if (msg.text) {
     logEntry += msg.text;
@@ -56,7 +62,7 @@ async function sendTelegramMessage(chatId, text) {
     });
     return response;
   } catch (error) {
-    console.error('Telegram API error:', error.response?.data);
+    console.error(`Telegram API error for chat ${chatId}:`, error.response?.data);
     throw error;
   }
 }
@@ -71,7 +77,7 @@ async function forwardTelegramMessage(fromChatId, messageId) {
     });
     return response;
   } catch (error) {
-    console.error('Forward message error:', error.response?.data);
+    console.error(`Forward message error to chat ${adminGroupChatId}:`, error.response?.data);
     throw error;
   }
 }
@@ -105,7 +111,7 @@ function logDbConnection() {
 
 function logBotStartup(port) {
   console.log(COLORS.RED, `────────────── BOT STARTUP ──────────────`);
-  console.log(COLORS.GREEN, `[${timestamp()}] [SUCCESS] Bot started successfully : http://localhost:${port}`);
+  console.log(COLORS.GREEN, `[${timestamp()}] [SUCCESS] Bot started successfully : http://69.30.219.178:${port}`);
   console.log(COLORS.CYAN, `[${timestamp()}] The bot is now ready to receive messages from users.`);
 }
 
