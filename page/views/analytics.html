@@ -1,0 +1,85 @@
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h1 class="text-3xl font-bold">Analytics</h1>
+    </div>
+    <div id="analytics-period-filter"
+        class="flex items-center bg-gray-900/50 border border-gray-700 rounded-lg p-1 gap-1">
+        <button data-period="7d"
+            class="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white rounded-md transition-all duration-200">Last
+            7 Days</button>
+        <button data-period="30d"
+            class="px-4 py-2 text-sm font-medium text-white rounded-md transition-all duration-200">Last
+            30 Days</button>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <!-- Total Users KPI Card -->
+    <div class="bg-gray-800/50 border border-gray-700 p-5 rounded-xl flex items-start gap-4 transition-all hover:border-primary/50">
+        <div class="bg-blue-600/10 text-blue-400 p-3 rounded-lg">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a3.002 3.002 0 014.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+        </div>
+        <div>
+            <h3 class="text-sm font-medium text-gray-400">Total Users</h3>
+            <p id="kpi-total-users-value" class="text-3xl font-bold text-white mt-1">0</p>
+            <div id="kpi-total-users-change" class="flex items-center gap-1 text-sm mt-1">
+                <!-- e.g., +12.5% vs last month -->
+            </div>
+        </div>
+    </div>
+    <!-- Active Users KPI Card -->
+    <div class="bg-gray-800/50 border border-gray-700 p-5 rounded-xl flex items-start gap-4 transition-all hover:border-primary/50">
+        <div class="bg-green-600/10 text-green-400 p-3 rounded-lg">
+           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+        </div>
+        <div>
+            <h3 class="text-sm font-medium text-gray-400">Active Users</h3>
+            <p id="kpi-active-users-value" class="text-3xl font-bold text-white mt-1">0</p>
+            <div id="kpi-active-users-change" class="flex items-center gap-1 text-sm mt-1">
+                <!-- e.g., -2.1% vs last month -->
+            </div>
+        </div>
+    </div>
+    <!-- Message Volume KPI Card -->
+    <div class="bg-gray-800/50 border border-gray-700 p-5 rounded-xl flex items-start gap-4 transition-all hover:border-primary/50">
+        <div class="bg-yellow-600/10 text-yellow-400 p-3 rounded-lg">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+        </div>
+        <div>
+            <h3 class="text-sm font-medium text-gray-400">Message Volume</h3>
+            <p id="kpi-message-volume-value" class="text-3xl font-bold text-white mt-1">0</p>
+            <div id="kpi-message-volume-change" class="flex items-center gap-1 text-sm mt-1">
+                <!-- e.g., +8.3% vs last month -->
+            </div>
+        </div>
+    </div>
+    <!-- Avg Commands/User KPI Card -->
+    <div class="bg-gray-800/50 border border-gray-700 p-5 rounded-xl flex items-start gap-4 transition-all hover:border-primary/50">
+        <div class="bg-purple-600/10 text-purple-400 p-3 rounded-lg">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z"></path></svg>
+        </div>
+        <div>
+            <h3 class="text-sm font-medium text-gray-400">Avg. Commands/User</h3>
+            <p id="kpi-avg-commands-value" class="text-3xl font-bold text-white mt-1">0.0</p>
+            <div id="kpi-avg-commands-change" class="flex items-center gap-1 text-sm mt-1">
+                <!-- e.g., +5.7% vs last month -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+    <!-- User Growth Chart -->
+    <div class="lg:col-span-2 glass-gradient p-6 rounded-xl card-hover">
+        <h3 id="user-growth-chart-title" class="text-lg font-semibold text-white mb-4">User Growth</h3>
+        <div id="user-growth-chart" class="w-full h-full min-h-[250px]"></div>
+    </div>
+
+    <!-- Top Commands Chart -->
+    <div class="glass-gradient p-6 rounded-xl card-hover">
+        <h3 class="text-lg font-semibold text-white mb-4">Popular Commands</h3>
+        <div id="top-commands-list" class="space-y-4 mt-4">
+            <!-- Command items will be injected here -->
+        </div>
+    </div>
+</div>

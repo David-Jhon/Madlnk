@@ -1,35 +1,488 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAD Bot Introduction</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Bot Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- CodeMirror for syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <!-- Quill Editor -->
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.0/dist/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.0/dist/quill.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            letter-spacing: -0.01em;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-gradient {
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        .glass-gradient::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        h1,
+        h2,
+        h3 {
+            letter-spacing: -0.02em;
+            font-weight: 700;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #6366f1, #a855f7);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #818cf8, #c084fc);
+        }
+
+        * {
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 8px currentColor;
+            }
+
+            50% {
+                opacity: 0.7;
+                box-shadow: 0 0 16px currentColor;
+            }
+        }
+
+        .pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#a855f7',
+                        dark: '#202020',
+                        darker: '#202020',
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body>
-    <div class="container">
-        <div align ="center" class="status">MAD bot is online</div>
-        <div class="content">
-            <div class="header">
-                <img src="anime_logo.png" alt="Anime Bot Logo">
-                <h1>Welcome to the MAD Bot!</h1>
+
+<body class="bg-darker text-white h-screen flex overflow-hidden">
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden glass" onclick="toggleSidebar()">
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+        class="fixed inset-y-0 left-0 z-50 w-64 bg-dark border-r border-gray-800 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col">
+        <div class="p-6 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div
+                    class="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center font-bold text-lg">
+                    B</div>
+                <span class="text-xl font-bold tracking-wide">BotDash</span>
             </div>
-            <div class="description">
-                <p>Get your daily dose of anime with our awesome features:</p>
-                <ul>
-                    <li>Search for anime information and recommendations.</li>
-                    <li>Discover new anime based on your preferences.</li>
-                    <li>Engage with other anime fans in our chat community.</li>
-                    <li>Stay updated on the latest anime news and releases.</li>
-                    <li><b>How to Use MAD Bot:</b><br>
-/start - Begin using the bot<br>
-/help - Get a list of available commands.</li>
-                </ul>
+            <button class="md:hidden text-gray-400 hover:text-white" onclick="toggleSidebar()">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+        </div>
+
+        <nav class="flex-1 px-4 space-y-2 mt-4">
+            <a href="#" onclick="showSection('overview')" id="nav-overview"
+                class="nav-item flex items-center space-x-3 px-4 py-3 bg-gradient-to-r from-primary/20 to-secondary/20 text-primary rounded-xl transition-all duration-300 hover:scale-[1.02]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z">
+                    </path>
+                </svg>
+                <span class="font-medium">Overview</span>
+            </a>
+            <a href="#" onclick="showSection('analytics')" id="nav-analytics"
+                class="nav-item flex items-center space-x-3 px-4 py-3 text-gray-400 hover:bg-gray-800/50 hover:text-white rounded-xl transition-all duration-300 hover:scale-[1.02]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                    </path>
+                </svg>
+                <span class="font-medium">Analytics</span>
+            </a>
+            <a href="#" onclick="showSection('users')" id="nav-users"
+                class="nav-item flex items-center space-x-3 px-4 py-3 text-gray-400 hover:bg-gray-800/50 hover:text-white rounded-xl transition-all duration-300 hover:scale-[1.02]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
+                    </path>
+                </svg>
+                <span class="font-medium">Users</span>
+            </a>
+            <a href="#" onclick="showSection('broadcast')" id="nav-broadcast"
+                class="nav-item flex items-center space-x-3 px-4 py-3 text-gray-400 hover:bg-gray-800/50 hover:text-white rounded-xl transition-all duration-300 hover:scale-[1.02]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z">
+                    </path>
+                </svg>
+                <span class="font-medium">Broadcast</span>
+            </a>
+            <a href="#" onclick="showSection('settings')" id="nav-settings"
+                class="nav-item flex items-center space-x-3 px-4 py-3 text-gray-400 hover:bg-gray-800/50 hover:text-white rounded-xl transition-all duration-300 hover:scale-[1.02]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                    </path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <span class="font-medium">Settings</span>
+            </a>
+            <a href="#" onclick="showSection('multibot')" id="nav-multibot"
+                class="nav-item flex items-center space-x-3 px-4 py-3 text-gray-400 hover:bg-gray-800/50 hover:text-white rounded-xl transition-all duration-300 hover:scale-[1.02]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z">
+                    </path>
+                </svg>
+                <span class="font-medium">Multi-Bot</span>
+            </a>
+            <a href="#" onclick="showSection('cron')" id="nav-cron"
+                class="nav-item flex items-center space-x-3 px-4 py-3 text-gray-400 hover:bg-gray-800/50 hover:text-white rounded-xl transition-all duration-300 hover:scale-[1.02]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="font-medium">CRON Jobs</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-gray-800">
+            <div class="flex items-center space-x-3 mb-3">
+                <img src="/anime_logo.png" alt="Admin" class="w-10 h-10 rounded-full object-cover">
+                <div>
+                    <p class="text-sm font-medium text-white">Admin</p>
+                    <p class="text-xs text-gray-400">Online</p>
+                </div>
             </div>
-            <div class="join-button">
-                <a href="https://t.me/mangadwnld_Bot">Join Now on Telegram!</a>
+            <button onclick="logout()"
+                class="w-full px-4 py-2 bg-red-600/10 hover:bg-red-600/20 text-red-400 hover:text-red-300 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 border border-red-600/30">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                    </path>
+                </svg>
+                <span class="text-sm font-medium">Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative md:ml-64">
+        <!-- Mobile Header -->
+        <header class="md:hidden bg-dark border-b border-gray-800 p-4 flex items-center justify-between shrink-0">
+            <div class="flex items-center space-x-3">
+                <div
+                    class="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center font-bold text-lg">
+                    B</div>
+                <span class="text-xl font-bold tracking-wide">BotDash</span>
+            </div>
+            <button class="text-gray-400 hover:text-white" onclick="toggleSidebar()">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
+                    </path>
+                </svg>
+            </button>
+        </header>
+
+        <div id="app-content" class="flex-1 overflow-y-auto p-6 md:p-10">
+        </div>
+    </main>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal"
+        class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+        <div
+            class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-sm p-6 m-4 shadow-2xl transform transition-all scale-100">
+            <h3 class="text-xl font-bold text-white mb-4">Are you sure?</h3>
+            <p id="confirmation-modal-text" class="text-sm text-gray-400 mb-6">This action cannot be undone.</p>
+            <div class="flex justify-end gap-3">
+                <button id="confirmation-modal-cancel"
+                    class="px-4 py-2 text-gray-400 hover:text-white transition-colors">Cancel</button>
+                <button id="confirmation-modal-confirm"
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors">Confirm</button>
             </div>
         </div>
     </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
+
+    <!-- Router Script -->
+    <script src="js/router.js"></script>
+
+    <script>
+        // Toast Notification System
+        window.showToast = (message, type = 'success') => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+
+            const colors = {
+                success: 'bg-green-500/10 border-green-500 text-green-400',
+                error: 'bg-red-500/10 border-red-500 text-red-400',
+                info: 'bg-blue-500/10 border-blue-500 text-blue-400'
+            };
+
+            const icons = {
+                success: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>',
+                error: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>',
+                info: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+            };
+
+            toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-md shadow-lg transform transition-all duration-300 translate-y-10 opacity-0 ${colors[type] || colors.info}`;
+            toast.innerHTML = `
+                ${icons[type] || icons.info}
+                <span class="text-sm font-medium">${message}</span>
+            `;
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+            });
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        };
+
+        // Global State & Utils
+        let currentSectionId = 'overview';
+
+        function showSection(sectionId) {
+            currentSectionId = sectionId;
+
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('bg-gradient-to-r', 'from-primary/20', 'to-secondary/20', 'text-primary');
+                el.classList.add('text-gray-400', 'hover:bg-gray-800/50', 'hover:text-white');
+            });
+            const activeNav = document.getElementById('nav-' + sectionId);
+            if (activeNav) {
+                activeNav.classList.remove('text-gray-400', 'hover:bg-gray-800/50', 'hover:text-white');
+                activeNav.classList.add('bg-gradient-to-r', 'from-primary/20', 'to-secondary/20', 'text-primary');
+            }
+
+            if (window.loadRoute) {
+                window.loadRoute(sectionId);
+            }
+            const sidebar = document.getElementById('sidebar');
+            if (!sidebar.classList.contains('-translate-x-full') && window.innerWidth < 768) {
+                toggleSidebar();
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const confirmationModalText = document.getElementById('confirmation-modal-text');
+        const confirmBtn = document.getElementById('confirmation-modal-confirm');
+        const cancelBtn = document.getElementById('confirmation-modal-cancel');
+        let confirmCallback = null;
+
+        function showConfirmationModal(text, onConfirm) {
+            if (!confirmationModal) return;
+            confirmationModalText.textContent = text;
+            confirmCallback = onConfirm;
+            confirmationModal.classList.remove('hidden');
+        }
+
+        function closeConfirmationModal() {
+            if (!confirmationModal) return;
+            confirmCallback = null;
+            confirmationModal.classList.add('hidden');
+        }
+
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                if (typeof confirmCallback === 'function') {
+                    confirmCallback();
+                }
+                closeConfirmationModal();
+            });
+        }
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', closeConfirmationModal);
+        }
+
+        // Global Fetch Stats
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+
+                const uptimeEl = document.getElementById('uptime-display');
+                if (uptimeEl) {
+                    const uptime = data.uptime;
+                    uptimeEl.textContent = `${uptime.days}d ${uptime.hours}h ${uptime.minutes}m`;
+                    document.getElementById('uptime-detail').textContent = `Running smoothly`;
+                }
+
+                const usersEl = document.getElementById('users-count');
+                if (usersEl) usersEl.textContent = data.users.toLocaleString();
+
+                const statusEl = document.getElementById('status-text');
+                if (statusEl) statusEl.textContent = data.status;
+
+                const sysStatusEl = document.getElementById('system-status');
+                if (sysStatusEl) {
+                    if (data.status === 'Online') {
+                        sysStatusEl.textContent = 'System Operational';
+                        sysStatusEl.previousElementSibling.classList.remove('bg-red-500');
+                        sysStatusEl.previousElementSibling.classList.add('bg-green-500');
+                    } else {
+                        sysStatusEl.textContent = 'System Issues';
+                        sysStatusEl.previousElementSibling.classList.remove('bg-green-500');
+                        sysStatusEl.previousElementSibling.classList.add('bg-red-500');
+                    }
+                }
+
+                const tableBody = document.getElementById('recent-users-table');
+                if (tableBody && data.recentUsers) {
+                    if (data.recentUsers.length > 0) {
+                        tableBody.innerHTML = data.recentUsers.map(user => {
+                            const joinedDate = new Date(user.joined).toLocaleDateString();
+                            const lastActive = new Date(user.lastActivity);
+                            const now = new Date();
+                            const isActive = (now - lastActive) < (24 * 60 * 60 * 1000);
+
+                            return `
+                                <tr class="border-b border-gray-800 hover:bg-gray-800/30 transition-colors">
+                                    <td class="py-3 px-4">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-white">
+                                                ${user.firstName.charAt(0)}
+                                            </div>
+                                            <span class="font-medium text-white">${user.firstName} ${user.lastName || ''}</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-4 text-gray-400">@${user.username || 'N/A'}</td>
+                                    <td class="py-3 px-4 text-gray-400">${joinedDate}</td>
+                                    <td class="py-3 px-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isActive ? 'bg-green-400/10 text-green-400' : 'bg-gray-700 text-gray-400'}">
+                                            ${isActive ? 'Active' : 'Inactive'}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('');
+                    } else {
+                        tableBody.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-gray-500">No recent users found</td></tr>';
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+            }
+        }
+
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    window.location.href = '/login';
+                } else {
+                    showToast('Logout failed', 'error');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                showToast('An error occurred during logout', 'error');
+            }
+        }
+
+        // Initial Load
+        showSection('overview');
+
+        setInterval(() => {
+            if (currentSectionId === 'overview') {
+                fetchStats();
+            }
+        }, 30000);
+    </script>
 </body>
+
 </html>

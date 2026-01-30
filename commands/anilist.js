@@ -1,103 +1,19 @@
 const axios = require("axios");
 const User = require("../DB/User");
-
-const ANILIST_API_URL = "https://graphql.anilist.co";
-
-const fetchGraphQL = async (query, variables) => {
-  try {
-    const response = await axios.post(
-      ANILIST_API_URL,
-      {
-        query: query,
-        variables: variables,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-      }
-    );
-    return response.data.data;
-  } catch (error) {
-    console.error("Error in GraphQL request:", error);
-    throw error;
-  }
-};
-
-async function getUserId(username) {
-  const query = `
-        query ($username: String) {
-            User(name: $username) {
-                id
-            }
-        }
-    `;
-  const data = await fetchGraphQL(query, { username });
-  return data.User.id;
-}
-
-async function getUserRecentActivity(userId) {
-  const query = `
-        query ($userId: Int) {
-            Page(page: 1, perPage: 10) {
-                activities(userId: $userId, sort: ID_DESC) {
-                    ... on ListActivity {
-                        id
-                        status
-                        progress
-                        createdAt
-                        media {
-                            title {
-                                romaji
-                                english
-                                native
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    `;
-  const data = await fetchGraphQL(query, { userId });
-  return data.Page.activities;
-}
-
-async function getUserStats(userId) {
-  const query = `
-        query ($userId: Int) {
-            User(id: $userId) {
-                statistics {
-                    anime {
-                        count
-                        meanScore
-                        minutesWatched
-                    }
-                    manga {
-                        count
-                        meanScore
-                        chaptersRead
-                    }
-                }
-            }
-        }
-    `;
-  const data = await fetchGraphQL(query, { userId });
-  return data.User.statistics;
-}
+const { getUserProfile, getUserById, getUserRecentActivity } = require("../utilities/anilistUtils");
 
 module.exports = {
   name: "anilist",
   version: 1.0,
   longDescription: "Manage and view your AniList stats/activity, or other username.",
   shortDescription: "View your AniList activity and stats",
-  guide: "{pn} [[set | del | view]] [[username]]"+
-  "\n\n─── Usage:\n• `{pn} set username` - to save your AniList username"+
-  "\n• `{pn} del` - to delete your saved username"+
-  "\n• `{pn} view username` - to view someone else's AniList data"+
-  "\n• `{pn}` - to view your AniList activity"+
-  "\n\n─── Example:" +
-  "\n• `{pn} set Sharkynemesis`",
+  guide: "{pn} [[set | del | view]] [[username]]" +
+    "\n\n─── Usage:\n• `{pn} set username` - to save your AniList username" +
+    "\n• `{pn} del` - to delete your saved username" +
+    "\n• `{pn} view username` - to view someone else's AniList data" +
+    "\n• `{pn}` - to view your AniList activity" +
+    "\n\n─── Example:" +
+    "\n• `{pn} set Sharkynemesis`",
   category: ['Anime & Manga Information', 3],
   lang: {
     setSuccess: "Username has been saved.",
@@ -109,7 +25,7 @@ module.exports = {
 
   onStart: async ({ bot, msg, args }) => {
     const chatId = msg.chat.id;
-    
+
     if (!args || args.length === 0) {
       const user = await User.findOne({ userId: msg.from.id });
       if (!user || !user.anilistUsername) {
@@ -126,12 +42,12 @@ module.exports = {
         return bot.sendMessage(chatId, `Usage: /anilist set username`);
       }
       try {
-        const anilistId = await getUserId(anilistUsername);
+        const userProfile = await getUserProfile(anilistUsername);
         await User.findOneAndUpdate(
           { userId: msg.from.id },
-          { 
+          {
             anilistUsername: anilistUsername,
-            anilistId: anilistId 
+            anilistId: userProfile.id
           },
           { upsert: true, new: true }
         );
@@ -144,10 +60,12 @@ module.exports = {
       try {
         await User.findOneAndUpdate(
           { userId: msg.from.id },
-          { 
-            $unset: { 
+          {
+            $unset: {
               anilistUsername: "",
-              anilistId: "" } }
+              anilistId: ""
+            }
+          }
         );
         return bot.sendMessage(chatId, module.exports.lang.delSuccess);
       } catch (error) {
@@ -169,10 +87,14 @@ module.exports = {
 async function displayAniListData(bot, chatId, username, storedId = null) {
   try {
     await bot.sendChatAction(chatId, "typing");
-    
-    const userId = storedId || await getUserId(username);
+
+    // Get user profile (includes ID and statistics)
+    const userProfile = storedId ? await getUserById(storedId) : await getUserProfile(username);
+    const userId = userProfile.id;
+    const stats = userProfile.statistics;
+
+    // Get recent activity
     const recentActivity = await getUserRecentActivity(userId);
-    const stats = await getUserStats(userId);
     const metaImageUrl = `https://img.anili.st/user/${userId}`;
 
     let message = `❏ Recent activity of \`${username}\`:\n\n`;
@@ -181,6 +103,7 @@ async function displayAniListData(bot, chatId, username, storedId = null) {
     )}\n➤ Mean Score: ${stats.anime.meanScore}\n\n`;
     message += `*Manga Stats:*\n➤ Total Manga: ${stats.manga.count}\n➤ Chapters Read: ${stats.manga.chaptersRead}\n➤ Mean Score: ${stats.manga.meanScore}\n\n`;
     message += `*Recent Activities:*\n`;
+
     recentActivity.forEach((activity) => {
       if (activity.media) {
         const { romaji, english, native } = activity.media.title;
@@ -205,7 +128,7 @@ async function displayAniListData(bot, chatId, username, storedId = null) {
         ],
       },
     });
-  }  catch (error) {
+  } catch (error) {
     console.error("Error fetching user data:", error);
     return bot.sendMessage(chatId, module.exports.lang.error);
   }

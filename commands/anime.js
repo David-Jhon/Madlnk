@@ -3,10 +3,10 @@ const crypto = require('crypto');
 
 module.exports = {
   name: 'anime',
-  version: 1.0,
+  version: 1.5,
   longDescription: 'Generate a link to receive episodes of a specified anime.',
   shortDescription: 'Get anime episodes',
-  guide: '{pn} <animeName>\nExamples:\n/anime Bocchi the Rock\n/anime Naruto Season 1',
+  guide: '{pn} <animeName>',
   category: ['Download', 4],
   lang: {
     usage: 'Usage: /anime <animeName>\nEx: /anime Bocchi the Rock 🎸\nEx: /anime Naruto Season 1 🥷',
@@ -14,7 +14,8 @@ module.exports = {
     notFound: '😕 No episodes found for the specified anime.\n\n Use the command /list to see the available anime',
     singleResult: '🎬 Found results for query ★{animeName}★\n\n➤ Click below to get all episodes! ✅',
     multipleResults: '🎥 Found results for query ★{baseName}★\n\n➤ Click below for episodes! ✅',
-    sending: '📤 Sending episodes for:\n\n★ `{animeName}` ★... ⏳\n» `1080p [English + Japanese]`',
+    sendingMovie: '📤 Sending files for:\n\n★ `{animeName}` ★... ⏳',
+    sendingAnime: '📤 Sending episodes for:\n\n★ `{animeName}` ★... ⏳\n» `1080p [English + Japanese]`',
     sent: '✅ All episodes for ★{animeName}★ sent! 🎉\n\n💾 *Forward to a private chat or save to "Saved Messages"*.\n\n🚨] » *Files will be deleted in 15 mins!*...Due to Copyright Issues 🕒',
     deleted: '🚨 ★ *Files Deleted* ★ 🚨\n\n📜 » *Your files have been removed to comply with copyright laws.* 🗑️\n⚖️ » *Thank you for understanding!*\n═══════ ⋆★⋆ ═══════',
   },
@@ -85,19 +86,37 @@ module.exports = {
       }
 
       const displayName = anime.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      const sendingMsg = await bot.sendMessage(chatId, module.exports.lang.sending.replace('{animeName}', displayName), { parse_mode: 'Markdown' });
+      const isMovie = anime.isMovie;
+      
+      // Choose message based on isMovie flag
+      const sendingMessage = isMovie 
+        ? module.exports.lang.sendingMovie.replace('{animeName}', displayName)
+        : module.exports.lang.sendingAnime.replace('{animeName}', displayName);
+      
+      const sendingMsg = await bot.sendMessage(chatId, sendingMessage, { parse_mode: 'Markdown' });
       messageIdsToDelete.push(sendingMsg.message_id);
 
       const episodes = JSON.parse(anime.episodes).sort((a, b) => a.episodeNumber - b.episodeNumber);
       for (const episode of episodes) {
-        const caption = `Name: ${displayName}\nEp: ${episode.episodeNumber.toString().padStart(3, '0')}\nQuality: 1080p`;
-        const sentEpisode = await bot.copyMessage(chatId, process.env.STORAGE_GROUP_ID, episode.messageId, {
-          caption,
-          parse_mode: 'Markdown',
-          disable_notification: true,
-        });
+        let sentEpisode;
+        
+        if (isMovie) {
+
+          sentEpisode = await bot.copyMessage(chatId, process.env.STORAGE_GROUP_ID, episode.messageId, {
+            disable_notification: true,
+          });
+        } else {
+
+          const caption = `Name: ${displayName}\nEp: ${episode.episodeNumber.toString().padStart(3, '0')}\nQuality: 1080p`;
+          sentEpisode = await bot.copyMessage(chatId, process.env.STORAGE_GROUP_ID, episode.messageId, {
+            caption,
+            parse_mode: 'Markdown',
+            disable_notification: true,
+          });
+        }
+        
         messageIdsToDelete.push(sentEpisode.message_id);
-        await new Promise(resolve => setTimeout(resolve, 3500));
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
       const stickerMsg = await bot.sendMessage(chatId, '🎶 ━━━━━━━━━━━━━━━━━━ 🎶', { parse_mode: 'Markdown' });
@@ -141,11 +160,11 @@ module.exports = {
     try {
       animes = searchTerm
         ? await db.searchAnimeByName(searchTerm).catch(err => {
-            console.error('Search error:', err); // Debug: Log search errors
+            console.error('Search error:', err);
             return [];
           })
         : await db.getAllAnimes().catch(err => {
-            console.error('Get all error:', err); // Debug: Log get all errors
+            console.error('Get all error:', err); 
             return [];
           });
 
@@ -167,6 +186,7 @@ module.exports = {
           id: `${anime.animeId}-${index}`,
           title: displayName,
           description: description,
+          thumb_url: `https://i.ibb.co.com/23g3BQBk/Generated-Image-August-05-2025-2-07-PM.webp`,
           input_message_content: {
             message_text: `/anime ${displayName}`,
             parse_mode: 'Markdown',
@@ -178,7 +198,7 @@ module.exports = {
         cache_time: 300,
       });
     } catch (error) {
-      console.error('Inline query error:', error); // Debug: Catch any unhandled errors
+      console.error('Inline query error:', error);
     }
   },
 };

@@ -21,7 +21,7 @@ module.exports = {
       let botName = botInfo.first_name.includes("Bot") ? botInfo.first_name : `${botInfo.first_name} Bot`;
 
       const isAdmin = msg.from.id.toString() === process.env.OWNER_ID;
-      const ignoreCommands = ["channel.js"];
+      const ignoreCommands = ["channel.js, nhentai.js"];
 
       const commandsDir = path.join(__dirname, "../commands");
       const commandFiles = fs

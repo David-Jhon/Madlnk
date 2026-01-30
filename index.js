@@ -4,14 +4,28 @@ const fs = require('fs');
 const path = require('path');
 const app = require('./server');
 const userModel = require('./DB/User.js');
+const CommandLog = require('./DB/CommandLog.js');
 const connectDb = require('./DB/db.js');
-const { checkChannelSubscription, sendSubscriptionPrompt } = require('./utilities/channelUtils.js');
-const { logMessage, processCommand, logCommandLoad, logDbConnection, logBotStartup } = require('./log.js');
+const { checkChannelSubscription, sendSubscriptionPrompt, requiredChannels } = require('./utilities/channelUtils.js');
+const { logMessage, processCommand, logCommandLoad, logDbConnection, logBotStartup, logChannelEvent } = require('./log.js');
+const cronManager = require('./utilities/cronManager.js');
 
-const port = process.env.PORT || 7777;
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
-const commands = new Map();
-global.commands = commands;
+const port = process.env.PORT || 2631;
+const bot = new TelegramBot(process.env.BOT_TOKEN, {
+  polling: {
+    params: {
+      allowed_updates: JSON.stringify(['message', 'callback_query', 'inline_query', 'chat_member', "my_chat_member"])
+    }
+  }
+});
+bot.commands = new Map();
+
+// Expose bot to Express app
+app.locals.bot = bot;
+
+bot.on('polling_error', (error) => {
+  console.error('Polling Error:', error.code, error.message);
+});
 
 const ERROR_MESSAGES = {
   COMMAND_SYNTAX: "The command syntax is incorrect. Please use %1help %2 for details",
@@ -46,7 +60,12 @@ async function handleUserData(msg) {
 }
 
 function handleError(context, error) {
-  console.error(`Error in ${context}:`, error.message || error);
+  console.error(`Error in ${context}:`, {
+    message: error.message || error,
+    code: error.code,
+    response: error.response?.body || error.response?.data,
+    stack: error.stack
+  });
 }
 
 function loadCommands() {
@@ -59,7 +78,7 @@ function loadCommands() {
 
       const commandPath = path.join(commandsDir, file);
       const command = require(commandPath);
-      commands.set(command.name, command);
+      bot.commands.set(command.name, command);
       loadedFiles.push(file);
 
       if (command.onStart) {
@@ -74,6 +93,8 @@ function loadCommands() {
 
           try {
             await command.onStart({ bot, msg, args });
+            // Log command usage
+            await new CommandLog({ commandName: command.name, userId: msg.from.id }).save();
           } catch (error) {
             handleError(`Command ${command.name}`, error);
             await bot.sendMessage(chatId, ERROR_MESSAGES.GENERAL_ERROR);
@@ -85,7 +106,7 @@ function loadCommands() {
     // Catch unknown /commands and redirect to help
     bot.onText(/\/([^ ]+)/, async (msg, match) => {
       const commandName = match[1].toLowerCase();
-      if (commands.has(commandName)) return;
+      if (bot.commands.has(commandName)) return;
 
       const chatId = msg.chat.id;
       await logAndUpdateUser(msg);
@@ -93,7 +114,7 @@ function loadCommands() {
         return sendSubscriptionPrompt(bot, chatId);
       }
 
-      const helpCommand = commands.get('help');
+      const helpCommand = bot.commands.get('help');
       if (helpCommand?.onChat) {
         try {
           await helpCommand.onChat({ bot, msg, args: match[1].split(' ') });
@@ -106,7 +127,7 @@ function loadCommands() {
       }
     });
 
-    logCommandLoad(loadedFiles, commands);
+    logCommandLoad(loadedFiles, bot.commands);
   } catch (error) {
     handleError(`Command loading`, error);
     process.exit(1);
@@ -128,7 +149,7 @@ bot.on('callback_query', async (callbackQuery) => {
       return;
     }
 
-    const command = commands.get(commandName);
+    const command = bot.commands.get(commandName);
     if (command?.onCallback) {
       await command.onCallback({ bot, callbackQuery, params });
     } else {
@@ -142,7 +163,7 @@ bot.on('callback_query', async (callbackQuery) => {
 
 bot.on('inline_query', async (inlineQuery) => {
   try {
-    for (const command of commands.values()) {
+    for (const command of bot.commands.values()) {
       if (command.onInlineQuery) {
         await command.onInlineQuery({ bot, inlineQuery });
       }
@@ -156,19 +177,34 @@ bot.on('inline_query', async (inlineQuery) => {
   }
 });
 
+bot.on('chat_member', async (update) => {
+  const channel = requiredChannels.find(ch => ch.id === update.chat.id.toString());
+  if (!channel) return;
+
+  const oldStatus = update.old_chat_member.status;
+  const newStatus = update.new_chat_member.status;
+  const user = update.new_chat_member.user;
+
+  if (oldStatus === 'left' && ['member', 'administrator', 'creator'].includes(newStatus)) {
+    await logChannelEvent(user, update.chat.title, 'Joined');
+  } else if (['member', 'administrator', 'creator'].includes(oldStatus) && newStatus === 'left') {
+    await logChannelEvent(user, update.chat.title, 'Left');
+  }
+});
+
 bot.on('message', async (msg) => {
   if (msg.from.is_bot || msg.text?.startsWith('/')) return;
 
   const chatId = msg.chat.id;
   await logAndUpdateUser(msg);
-  if (!(await checkChannelSubscription(bot, msg.from.id)) && !commands.get('uploadanime')?.category?.includes('Admin')) {
+  if (!(await checkChannelSubscription(bot, msg.from.id)) && !bot.commands.get('uploadanime')?.category?.includes('Admin')) {
     return sendSubscriptionPrompt(bot, chatId);
   }
 
   const text = msg.text?.trim();
   const args = text ? text.split(' ') : [];
 
-  for (const command of commands.values()) {
+  for (const command of bot.commands.values()) {
     if (command.onChat) {
       try {
         await command.onChat({ bot, msg, args });
@@ -184,6 +220,7 @@ async function main() {
     await connectDb();
     logDbConnection("Database connected successfully.");
     loadCommands();
+    cronManager.initialize(bot);
     app.listen(port, () => logBotStartup(port));
 
     const restartTime = new Date().toLocaleString('en-US', {
@@ -191,14 +228,14 @@ async function main() {
       hour12: true,
     });
 
-    await bot.sendMessage(process.env.OWNER_ID, 
+    await bot.sendMessage(process.env.OWNER_ID,
       `╔═══•● 𝗦𝗬𝗦𝗧𝗘𝗠 𝗡𝗢𝗧𝗜𝗖𝗘 ●•═══╗
 
     🔄 𝙏𝙝𝙚 𝘽𝙤𝙩 𝙃𝙖𝙨 𝙍𝙚𝙨𝙩𝙖𝙧𝙩𝙚𝙙
     🕒 𝙏𝙞𝙢𝙚: *${restartTime}*
     📶 𝙎𝙩𝙖𝙩𝙪𝙨: 🟢 𝙊𝙉𝙇𝙄𝙉𝙀\n\n` +
-    `╚═══•● 𝗦𝗬𝗦𝗧𝗘𝗠 𝗡𝗢𝗧𝗜𝗖𝗘 ●•═══╝`, { parse_mode: 'Markdown' }
-      );
+      `╚═══•● 𝗦𝗬𝗦𝗧𝗘𝗠 𝗡𝗢𝗧𝗜𝗖𝗘 ●•═══╝`, { parse_mode: 'Markdown' }
+    );
 
     process.on('unhandledRejection', (reason) => console.error('Unhandled Rejection:', reason));
     process.on('uncaughtException', (error) => {
@@ -210,6 +247,5 @@ async function main() {
     process.exit(1);
   }
 }
-
 
 main();

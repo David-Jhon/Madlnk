@@ -1,9 +1,10 @@
 const requiredChannels = [
-  { id: 'CHANNEL_ID1', name: 'Channel 1', inviteLink: 'INVITE_LINK' },
-  { id: 'CHANNEL_ID2', name: 'Channel 2', inviteLink: 'INVITE_LINK' },
+  { id: process.env.MANGA_CHANNEL_ID, name: 'Channel 1', inviteLink: process.env.MANGA_CHANNEL_LINK },
+  { id: process.env.ANIME_CHANNEL_ID, name: 'Channel 2', inviteLink: process.env.ANIME_CHANNEL_LINK }
 ];
 
-const photoFileId = 'AgACAgUAAyEFAASoSw2rAAMEaGmjSVf6xecJb8YigW-rHW6MKvMAAi3AMRt2MAFVnlX1_EUTMokBAAMCAAN5AAM2BA';
+const photoFileId = 'https://i.ibb.co.com/XxC2vc7P/Picsart-25-08-29-18-55-12-288.jpg';
+// const photoFileId = 'AgACAgUAAyEFAASoSw2rAAMEaGmjSVf6xecJb8YigW-rHW6MKvMAAi3AMRt2MAFVnlX1_EUTMokBAAMCAAN5AAM2BA';
 
 async function checkChannelSubscription(bot, userId) {
   try {
@@ -45,4 +46,4 @@ async function sendSubscriptionPrompt(bot, chatId) {
   }
 }
 
-module.exports = { checkChannelSubscription, sendSubscriptionPrompt };
+module.exports = { checkChannelSubscription, sendSubscriptionPrompt, requiredChannels };

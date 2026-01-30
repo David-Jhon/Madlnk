@@ -13,7 +13,8 @@ db.run(`
   CREATE TABLE IF NOT EXISTS animes (
     animeId TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE, -- Ensure no duplicate names
-    episodes TEXT NOT NULL DEFAULT '[]'
+    episodes TEXT NOT NULL DEFAULT '[]',
+    isMovie BOOLEAN DEFAULT 0
   )
 `);
 
@@ -54,11 +55,11 @@ module.exports = {
     });
   },
 
-  async saveAnime(animeId, name, part, episodes) {
+  async saveAnime(animeId, name, part, episodes, isMovie = false) {
     return new Promise((resolve, reject) => {
       db.run(
-        'INSERT OR REPLACE INTO animes (animeId, name, episodes) VALUES (?, ?, ?)',
-        [animeId, name, JSON.stringify(episodes)],
+        'INSERT OR REPLACE INTO animes (animeId, name, episodes, isMovie) VALUES (?, ?, ?, ?)',
+        [animeId, name, JSON.stringify(episodes), isMovie ? 1 : 0],
         (err) => {
           if (err) reject(err);
           else resolve();

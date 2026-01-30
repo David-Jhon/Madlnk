@@ -53,12 +53,13 @@ async function logMessage(msg) {
   }
 }
 
-async function sendTelegramMessage(chatId, text) {
+async function sendTelegramMessage(chatId, text, options = {}) {
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
   try {
     const response = await axios.post(url, {
       chat_id: chatId,
       text: text,
+      ...options
     });
     return response;
   } catch (error) {
@@ -109,10 +110,39 @@ function logDbConnection() {
   console.log(COLORS.GREEN, `[${timestamp()}] [SUCCESS] Database connected successfully.`);
 }
 
-function logBotStartup(port) {
+async function logBotStartup(port) {
+  let ip = 'localhost';
+  try {
+    const response = await axios.get('https://api.ipify.org?format=json');
+    ip = response.data.ip;
+  } catch (error) {
+    // Fallback to localhost if IP fetch fails
+  }
+
   console.log(COLORS.RED, `────────────── BOT STARTUP ──────────────`);
-  console.log(COLORS.GREEN, `[${timestamp()}] [SUCCESS] Bot started successfully : http://69.30.219.178:${port}`);
+  console.log(COLORS.GREEN, `[${timestamp()}] [SUCCESS] Bot started successfully : http://${ip}:${port}`);
   console.log(COLORS.CYAN, `[${timestamp()}] The bot is now ready to receive messages from users.`);
 }
 
-module.exports = { logMessage, processCommand, logCommandLoad, logDbConnection, logBotStartup };
+async function logChannelEvent(user, channelName, action) {
+  if (!loggingEnabled) return;
+
+  const statusEmoji = action === 'Joined' ? '🟢' : '🔴';
+  const fullName = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+  const username = user.username ? `@${user.username}` : 'no-username';
+
+  const logEntry = `📢『 <b>Channel Update</b> 』\n\n` +
+    `👤 | ${fullName}\n` +
+    `🪪 | ${username}\n` +
+    `🆔 | <code>${user.id}</code>\n` +
+    `📢 | ${channelName}\n\n` +
+    `Status:\n» ${action} ${statusEmoji}`;
+
+  try {
+    await sendTelegramMessage(adminGroupChatId, logEntry, { parse_mode: 'HTML' });
+  } catch (error) {
+    console.error('Failed to send channel log:', error);
+  }
+}
+
+module.exports = { logMessage, processCommand, logCommandLoad, logDbConnection, logBotStartup, logChannelEvent };

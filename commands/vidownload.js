@@ -4,15 +4,15 @@ const path = require('path');
 
 module.exports = {
   name: "vidownload",
-  version: 1.0,
+  version: 1.5,
   longDescription: "Download videos or audios from various sources. Supports additional parameters for file size, format, and cookies.",
   shortDescription: "Download videos/audio",
-  guide: `{pn} <url> | [[optional parameters]]`+
-  `\n\n─── Examples:
+  guide: `{pn} <url> | [[optional parameters]]` +
+    `\n\n─── Examples:
     \n• {pn} https://example.com/video --fs 100 --type audio --c cookies.txt
      \n• {pn} https://example.com/video --maxsize 200 --format video
      \n• {pn} https://example.com/video`+
-     `\n\n─── params:
+    `\n\n─── params:
      \n• URL: The video or audio URL to download
      \n• --fs or --maxsize: Specify maximum file size in MB (optional)
      \n• --type or --format: Specify download type as 'video' or 'audio' (optional)
@@ -23,6 +23,13 @@ module.exports = {
     loading: "🔄 Downloading...",
     invalid_url: "❌ Please provide a valid URL to download.",
     error: "❌ Failed to download the media. Please try again."
+  },
+
+
+  ytRegex: /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu\.be))(\/(?:[\w\-]+\?v=|embed\/|v\/|shorts\/)?)([\w\-]+)(\S+)?$/,
+
+  isYTUrl(url) {
+    return this.ytRegex.test(url);
   },
 
   parseArgs(args) {
@@ -65,8 +72,29 @@ module.exports = {
     return params;
   },
 
+  loadYTCookies() {
+    const ytCookiePath = path.join(process.cwd(), 'yt.txt');
+    if (fs.existsSync(ytCookiePath)) {
+      try {
+        return fs.readFileSync(ytCookiePath, 'utf-8');
+      } catch (error) {
+        console.warn("Warning: Could not read yt.txt cookie file:", error.message);
+        return null;
+      }
+    }
+    return null;
+  },
+
   async download(bot, vuri, params, chatId, downloadingMsgId) {
     try {
+
+      if (this.isYTUrl(vuri) && !params.cookies) {
+        const ytCookies = this.loadYTCookies();
+        if (ytCookies) {
+          params.cookies = ytCookies;
+        }
+      }
+
       const reqBody = {
         url: vuri,
         ...(params.format && { format: params.format }),
@@ -79,6 +107,10 @@ module.exports = {
       const res = await axios.post(d, reqBody);
       const data = res.data;
 
+      if (data.title && data.title.length > 800) {
+        data.title = params.format === 'audio' ? '🎵' : '🎬';
+      }
+
       const mediaStream = await axios.get(data.url, { responseType: 'stream' });
       const filename = `${data.title}.${params.format === 'audio' ? 'mp3' : 'mp4'}`;
 
@@ -86,7 +118,7 @@ module.exports = {
       const fileSizeInMB = contentLength ? (contentLength / (1024 * 1024)).toFixed(2) : 0;
 
       if (fileSizeInMB > 50) {
-        await bot.sendMessage(chatId, `The file is too large to send (${fileSizeInMB} MB). Here is the stream URL:\n\n${data.url}`);
+        await bot.sendMessage(chatId, `• ${data.title}\n\n• The file is too large to send (${fileSizeInMB} MB). Here is the stream URL:\n\n${data.url}`);
       } else {
         if (params.format === 'audio') {
           await bot.sendAudio(chatId, mediaStream.data, {
@@ -111,14 +143,15 @@ module.exports = {
     const text = args.join(" ");
 
     if (!args.length || !/^https?:\/\//.test(text)) {
-        return bot.sendMessage(chatId, this.lang.syntaxError.replace("%1", "/").replace("%2", this.name));
-  }
-      const vuri = text.split(' ')[0];
-      const params = this.parseArgs(text.split(' '));
-
-      const downloadingMsg = await bot.sendMessage(chatId, this.lang.loading);
-      const downloadingMsgId = downloadingMsg.message_id;
-
-      this.download(bot, vuri, params, chatId, downloadingMsgId);
+      return bot.sendMessage(chatId, this.lang.syntaxError.replace("%1", "/").replace("%2", this.name));
     }
+
+    const vuri = text.split(' ')[0];
+    const params = this.parseArgs(text.split(' '));
+
+    const downloadingMsg = await bot.sendMessage(chatId, this.lang.loading);
+    const downloadingMsgId = downloadingMsg.message_id;
+
+    this.download(bot, vuri, params, chatId, downloadingMsgId);
   }
+}

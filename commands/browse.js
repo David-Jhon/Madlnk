@@ -1,47 +1,4 @@
-const axios = require('axios');
-
-const ANILIST_URL = 'https://graphql.anilist.co/';
-
-
-async function fetchAnimeList(type, sort, year, season, page = 1, perPage = 20) {
-  const query = `
-    query ($type: MediaType, $sort: [MediaSort], $year: Int, $season: MediaSeason, $page: Int, $perPage: Int) {
-      Page(page: $page, perPage: $perPage) {
-        pageInfo {
-          hasNextPage
-        }
-        media(type: $type, sort: $sort, season: $season, seasonYear: $year) {
-          id
-          title {
-            romaji
-            english
-            native
-          }
-          coverImage {
-            medium
-          }
-          startDate {
-            year
-            month
-            day
-          }
-          popularity
-        }
-      }
-    }
-  `;
-
-  const variables = { type, sort, year, season, page, perPage };
-
-  try {
-    const response = await axios.post(ANILIST_URL, { query, variables });
-    return response.data.data.Page.media;
-  } catch (error) {
-    console.error('Error fetching anime list:', error);
-    return [];
-  }
-}
-
+const { getMediaList } = require('../utilities/anilistUtils');
 
 function generateKeyboard(currentSelection) {
   return {
@@ -67,7 +24,7 @@ function generateKeyboard(currentSelection) {
 module.exports = {
   name: 'browse',
   version: 1.0,
-  longDescription:"Get info about popular, trending, or upcoming anime",
+  longDescription: "Get info about popular, trending, or upcoming anime",
   shortDescription: "Browse anime by trending, popular, or upcoming",
   guide: "{pn}",
   category: ['Anime & Manga Information', 3],
@@ -85,9 +42,16 @@ module.exports = {
     const seasons = ['WINTER', 'SPRING', 'SUMMER', 'FALL'];
     const currentSeason = seasons[Math.floor((currentMonth - 1) / 3)];
 
-    const trending = await fetchAnimeList('ANIME', ['TRENDING_DESC'], currentYear, currentSeason);
+    const result = await getMediaList({
+      type: 'ANIME',
+      sort: 'TRENDING_DESC',
+      seasonYear: currentYear,
+      season: currentSeason,
+      perPage: 20
+    });
+
     let responseText = `Trending Animes in ${currentSeason} ${currentYear}:\n\n` +
-      trending.slice(0, 20)
+      result.media.slice(0, 20)
         .map(anime => `⚬ \`${anime.title.english || anime.title.romaji}\``)
         .join('\n');
 
@@ -122,25 +86,45 @@ module.exports = {
       }
     }
 
-    let animeList = [];
+    let result;
     let responseText = '';
 
     if (selection === 'trending') {
-      animeList = await fetchAnimeList('ANIME', ['TRENDING_DESC'], currentYear, currentSeason);
+      result = await getMediaList({
+        type: 'ANIME',
+        sort: 'TRENDING_DESC',
+        seasonYear: currentYear,
+        season: currentSeason,
+        perPage: 20
+      });
       responseText = `Trending Animes in ${currentSeason} ${currentYear}:\n\n`;
     } else if (selection === 'popular') {
-      animeList = await fetchAnimeList('ANIME', ['POPULARITY_DESC'], currentYear, currentSeason);
+      result = await getMediaList({
+        type: 'ANIME',
+        sort: 'POPULARITY_DESC',
+        seasonYear: currentYear,
+        season: currentSeason,
+        perPage: 20
+      });
       responseText = `Popular Animes in ${currentSeason} ${currentYear}:\n\n`;
     } else if (selection === 'upcoming') {
-      animeList = await fetchAnimeList('ANIME', ['POPULARITY_DESC'], targetYear, targetSeason);
+      result = await getMediaList({
+        type: 'ANIME',
+        sort: 'POPULARITY_DESC',
+        seasonYear: targetYear,
+        season: targetSeason,
+        perPage: 20
+      });
       responseText = `Upcoming Animes in ${targetSeason} ${targetYear}:\n\n`;
     } else {
       responseText = 'Invalid selection.';
     }
 
-    responseText += animeList.slice(0, 20)
-      .map(anime => `⚬ \`${anime.title.english || anime.title.romaji}\``)
-      .join('\n');
+    if (result && result.media) {
+      responseText += result.media.slice(0, 20)
+        .map(anime => `⚬ \`${anime.title.english || anime.title.romaji}\``)
+        .join('\n');
+    }
 
     try {
       await bot.editMessageText(responseText, {

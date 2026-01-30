@@ -38,6 +38,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  isBlocked: {
+    type: Boolean,
+    default: false,
+  },
   lastActivity: {
     type: Date,
     default: Date.now
@@ -48,4 +52,10 @@ const userSchema = new mongoose.Schema({
   }
 });
 
+/*
+// Ensure indexing for faster lookups
+userSchema.index({ userId: 1 });
+userSchema.index({ username: 1 });
+userSchema.index({ anilistUsername: 1 });
+*/
 module.exports = mongoose.model('User', userSchema);
